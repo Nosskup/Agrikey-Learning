@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import Footer from "../../../components/Footer";
 
 type Formation = {
   id: number;
@@ -19,7 +20,6 @@ type Formation = {
 type Module = {
   id: number;
   title: string;
- 
 };
 
 type Lesson = {
@@ -502,6 +502,8 @@ export default function FormationDetailPage() {
           </Link>
         </div>
       </section>
+
+      <Footer />
 
     </main>
   );
