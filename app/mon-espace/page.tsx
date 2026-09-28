@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import Footer from "@/components/Footer";
 
 type Course = {
   id: number;
@@ -384,6 +385,8 @@ export default function MonEspacePage() {
           </div>
         )}
       </div>
+
+      <Footer />
     </main>
   );
 }
