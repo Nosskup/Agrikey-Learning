@@ -15,6 +15,7 @@ type Formation = {
   duration: string;
   description: string | null;
   is_free: boolean;
+  image_url: string | null;
 };
 
 export default function Formations() {
@@ -32,7 +33,7 @@ export default function Formations() {
       const { data, error } = await supabase
         .from("courses")
         .select(
-          "id,title,category,level,price,duration,description,is_free"
+          "id,title,category,level,price,duration,description,is_free,image_url"
         )
         .eq("published", true)
         .order("id");
@@ -305,6 +306,7 @@ export default function Formations() {
                     <CourseCover
                       courseId={formation.id}
                       title={formation.title}
+                      imageUrl={formation.image_url}
                     />
 
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
