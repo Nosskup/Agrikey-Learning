@@ -1,510 +1,720 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { supabase } from "../../../lib/supabase";
-import Footer from "../../../components/Footer";
+import { supabase } from "@/lib/supabase";
 
-type Formation = {
+type Course = {
   id: number;
   title: string;
-  category: string;
-  level: string;
-  price: number;
-  duration: string;
   description: string | null;
+  category: string | null;
+  level: string | null;
+  price: number;
+  duration: string | null;
+  published: boolean;
   is_free: boolean;
 };
 
 type Module = {
   id: number;
   title: string;
+  course_id: number;
 };
 
 type Lesson = {
   id: number;
-  module_id: number;
   title: string;
-  type: string;
+  module_id: number;
   order_number: number;
 };
 
-export default function FormationDetailPage() {
+export default function AdminFormationPage() {
   const params = useParams();
-  const formationId = Number(params.id);
+  const courseId = Number(params.id);
 
-  const [formation, setFormation] = useState<Formation | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [hasAccess, setHasAccess] = useState(false);
+
+  const [moduleTitle, setModuleTitle] = useState("");
+  const [editingModuleId, setEditingModuleId] =
+    useState<number | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [accessLoading, setAccessLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [dataError, setDataError] = useState("");
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!formationId) return;
-
-    async function loadFormation() {
-      setLoading(true);
-      setMessage("");
-      setDataError("");
-
-      const { data: formationData, error: formationError } =
-        await supabase
-          .from("courses")
-          .select(
-            "id,title,category,level,price,duration,description,is_free"
-          )
-          .eq("id", formationId)
-          .eq("published", true)
-          .single();
-
-      if (formationError || !formationData) {
-        setFormation(null);
-        setDataError(
-          formationError?.message || "Formation introuvable."
-        );
-        setLoading(false);
-        return;
-      }
-
-      setFormation(formationData);
-
-      const { data: modulesData, error: modulesError } =
-        await supabase
-          .from("modules")
-          .select("id,title")
-          .eq("course_id", formationId)
-          ;
-
-      if (modulesError) {
-        console.error("Erreur modules :", modulesError);
-        setDataError(
-          `Erreur lors du chargement des modules : ${modulesError.message}`
-        );
-        setModules([]);
-        setLessons([]);
-        setLoading(false);
-        return;
-      }
-
-      const loadedModules = modulesData || [];
-      setModules(loadedModules);
-
-      if (loadedModules.length > 0) {
-        const moduleIds = loadedModules.map((module) => module.id);
-
-        const { data: lessonsData, error: lessonsError } =
-          await supabase
-            .from("lessons")
-            .select("id,module_id,title,type,order_number")
-            .in("module_id", moduleIds)
-            ;
-
-        if (lessonsError) {
-          console.error("Erreur leçons :", lessonsError);
-          setDataError(
-            `Erreur lors du chargement des leçons : ${lessonsError.message}`
-          );
-        }
-
-        setLessons(lessonsData || []);
-      } else {
-        setLessons([]);
-      }
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data: enrollment } = await supabase
-          .from("enrollments")
-          .select("id,status")
-          .eq("user_id", user.id)
-          .eq("course_id", formationId)
-          .eq("status", "active")
-          .maybeSingle();
-
-        setHasAccess(!!enrollment);
-      }
-
-      setLoading(false);
-    }
-
-    loadFormation();
-  }, [formationId]);
-
-  async function accederFormation() {
-    setAccessLoading(true);
-    setMessage("");
-
+  async function checkAdmin() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      setMessage("Connectez-vous pour accéder à cette formation.");
-      setAccessLoading(false);
-      return;
+      throw new Error("Vous devez être connecté.");
     }
 
-    const { error } = await supabase.rpc("enroll_in_free_course", {
-      p_course_id: formationId,
-    });
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
 
-    if (error) {
-      console.error(error);
-      setMessage(
-        "Impossible de vous inscrire à cette formation pour le moment."
-      );
-      setAccessLoading(false);
-      return;
+    if (profileError || profile?.role !== "admin") {
+      throw new Error("Accès réservé aux administrateurs.");
     }
-
-    setHasAccess(true);
-    setMessage("Vous êtes maintenant inscrit à cette formation.");
-    setAccessLoading(false);
   }
+
+  async function loadData() {
+    try {
+      setLoading(true);
+      setError("");
+
+      await checkAdmin();
+
+      const { data: courseData, error: courseError } =
+        await supabase
+          .from("courses")
+          .select(
+            "id, title, description, category, level, price, duration, published, is_free"
+          )
+          .eq("id", courseId)
+          .single();
+
+      if (courseError || !courseData) {
+        throw new Error("Formation introuvable.");
+      }
+
+      setCourse(courseData);
+
+      const { data: moduleData, error: moduleError } =
+        await supabase
+          .from("modules")
+          .select("id, title, course_id")
+          .eq("course_id", courseId)
+          .order("id", { ascending: true });
+
+      if (moduleError) {
+        throw moduleError;
+      }
+
+      setModules(moduleData || []);
+
+      if (moduleData && moduleData.length > 0) {
+        const moduleIds = moduleData.map((module) => module.id);
+
+        const { data: lessonData, error: lessonError } =
+          await supabase
+            .from("lessons")
+            .select(
+              "id, title, module_id, order_number"
+            )
+            .in("module_id", moduleIds)
+            .order("order_number", {
+              ascending: true,
+            });
+
+        if (lessonError) {
+          throw lessonError;
+        }
+
+        setLessons(lessonData || []);
+      } else {
+        setLessons([]);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Une erreur est survenue."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, [courseId]);
+
+  function resetModuleForm() {
+    setEditingModuleId(null);
+    setModuleTitle("");
+  }
+
+  function startEditingModule(module: Module) {
+    setEditingModuleId(module.id);
+    setModuleTitle(module.title);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function saveModule() {
+    if (!moduleTitle.trim()) {
+      setError("Le titre du module est obligatoire.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      setMessage("");
+
+      if (editingModuleId) {
+        const { data, error: updateError } =
+          await supabase
+            .from("modules")
+            .update({
+              title: moduleTitle.trim(),
+            })
+            .eq("id", editingModuleId)
+            .select("id, title, course_id")
+            .single();
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setModules(
+          modules.map((module) =>
+            module.id === editingModuleId
+              ? data
+              : module
+          )
+        );
+
+        setMessage("Module modifié avec succès.");
+      } else {
+        const { data, error: insertError } =
+          await supabase
+            .from("modules")
+            .insert({
+              course_id: courseId,
+              title: moduleTitle.trim(),
+            })
+            .select("id, title, course_id")
+            .single();
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        setModules([...modules, data]);
+
+        setMessage("Module créé avec succès.");
+      }
+
+      resetModuleForm();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'enregistrer le module."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteModule(moduleId: number) {
+    const moduleLessons = lessons.filter(
+      (lesson) => lesson.module_id === moduleId
+    );
+
+    const confirmationMessage =
+      moduleLessons.length > 0
+        ? `Ce module contient ${moduleLessons.length} leçon(s). Supprimer le module supprimera également ses leçons. Continuer ?`
+        : "Voulez-vous vraiment supprimer ce module ?";
+
+    const confirmed = window.confirm(
+      confirmationMessage
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      setMessage("");
+
+      const { error: deleteError } =
+        await supabase
+          .from("modules")
+          .delete()
+          .eq("id", moduleId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      setModules(
+        modules.filter(
+          (module) => module.id !== moduleId
+        )
+      );
+
+      setLessons(
+        lessons.filter(
+          (lesson) => lesson.module_id !== moduleId
+        )
+      );
+
+      if (editingModuleId === moduleId) {
+        resetModuleForm();
+      }
+
+      setMessage("Module supprimé avec succès.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de supprimer le module."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function getModuleLessons(moduleId: number) {
+    return lessons
+      .filter(
+        (lesson) => lesson.module_id === moduleId
+      )
+      .sort(
+        (a, b) =>
+          a.order_number - b.order_number
+      );
+  }
+
+  const totalLessons = lessons.length;
+
+  const formatPrice = (price: number) => {
+    if (price <= 0) {
+      return "Gratuite";
+    }
+
+    return `${price.toLocaleString("fr-FR")} FCFA`;
+  };
 
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-          <div className="animate-pulse">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="animate-pulse space-y-6">
             <div className="h-5 w-40 rounded bg-slate-200" />
-            <div className="mt-6 h-14 max-w-3xl rounded bg-slate-200" />
-            <div className="mt-5 h-6 max-w-2xl rounded bg-slate-200" />
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (!formation) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <section className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <div className="rounded-3xl border border-slate-200 bg-white p-10 shadow-sm">
-            <h1 className="text-3xl font-black text-slate-900">
-              Formation introuvable
-            </h1>
-            <p className="mt-3 text-slate-600">
-              {dataError}
-            </p>
-            <Link
-              href="/formations"
-              className="mt-7 inline-flex rounded-xl bg-green-700 px-6 py-3 text-sm font-bold text-white hover:bg-green-800"
-            >
-              Retour aux formations
-            </Link>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  const firstLesson = lessons[0];
-
-  return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-
-      <section className="overflow-hidden bg-gradient-to-br from-green-900 via-green-800 to-emerald-700">
-        <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8 lg:py-20">
-          <div className="max-w-4xl">
-            <Link
-              href="/formations"
-              className="text-sm font-semibold text-green-100 hover:text-white"
-            >
-              ← Retour aux formations
-            </Link>
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white">
-                {formation.category}
-              </span>
-
-              {formation.is_free && (
-                <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-green-800">
-                  GRATUIT
-                </span>
-              )}
-            </div>
-
-            <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
-              {formation.title}
-            </h1>
-
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-green-50">
-              {formation.description ||
-                "Une formation pratique pour développer vos compétences et progresser dans vos projets."}
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-white">
-              <span className="rounded-lg bg-white/10 px-4 py-2">
-                {formation.level}
-              </span>
-              <span className="rounded-lg bg-white/10 px-4 py-2">
-                {formation.duration}
-              </span>
-              <span className="rounded-lg bg-white/10 px-4 py-2">
-                {lessons.length} leçon{lessons.length > 1 ? "s" : ""}
-              </span>
-            </div>
+            <div className="h-32 rounded-2xl bg-white shadow-sm" />
+            <div className="h-24 rounded-2xl bg-white shadow-sm" />
+            <div className="h-64 rounded-2xl bg-white shadow-sm" />
           </div>
         </div>
-      </section>
+      </main>
+    );
+  }
 
-      <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+  if (!course) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-6 py-12">
+        <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
+          <p className="font-medium text-red-600">
+            {error || "Formation introuvable."}
+          </p>
 
-          <div className="space-y-8">
+          <a
+            href="/admin"
+            className="mt-6 inline-flex rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-800"
+          >
+            Retour à l'administration
+          </a>
+        </div>
+      </main>
+    );
+  }
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-              <h2 className="text-2xl font-black text-slate-950">
-                Ce que vous allez apprendre
-              </h2>
+  return (
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
-              <div className="mt-7 grid gap-5 sm:grid-cols-2">
-                {[
-                  "Comprendre les notions essentielles liées à votre activité",
-                  "Mieux organiser et suivre votre activité",
-                  "Prendre de meilleures décisions",
-                  "Appliquer les connaissances à votre situation",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex gap-3 rounded-2xl bg-slate-50 p-4"
+        {/* Navigation */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <a
+            href="/admin"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-green-700"
+          >
+            <span className="text-lg">←</span>
+            Retour à l'administration
+          </a>
+
+          <a
+            href={`/formations/${courseId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-green-300 hover:text-green-700"
+          >
+            Voir la formation
+            <span>↗</span>
+          </a>
+        </div>
+
+        {/* Hero formation */}
+        <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div className="bg-gradient-to-r from-green-800 via-green-700 to-emerald-600 px-6 py-8 text-white sm:px-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
+                    {course.category || "Formation"}
+                  </span>
+
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
+                    {course.level || "Tous niveaux"}
+                  </span>
+
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
+                    {course.published
+                      ? "Publiée"
+                      : "Brouillon"}
+                  </span>
+                </div>
+
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  {course.title}
+                </h1>
+
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-green-50 sm:text-base">
+                  {course.description ||
+                    "Gérez le contenu, les modules et les leçons de cette formation."}
+                </p>
+              </div>
+
+              <div className="shrink-0 rounded-2xl bg-white/10 px-5 py-4 backdrop-blur">
+                <p className="text-xs font-medium text-green-100">
+                  Tarif
+                </p>
+                <p className="mt-1 text-xl font-bold">
+                  {course.is_free
+                    ? "Gratuite"
+                    : formatPrice(course.price)}
+                </p>
+
+                {course.duration && (
+                  <p className="mt-1 text-xs text-green-100">
+                    Durée : {course.duration}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Statistiques */}
+          <div className="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-500">
+                Modules
+              </p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">
+                {modules.length}
+              </p>
+            </div>
+
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-500">
+                Leçons
+              </p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">
+                {totalLessons}
+              </p>
+            </div>
+
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-500">
+                Statut
+              </p>
+              <p
+                className={`mt-1 text-lg font-bold ${
+                  course.published
+                    ? "text-green-700"
+                    : "text-amber-600"
+                }`}
+              >
+                {course.published
+                  ? "En ligne"
+                  : "Brouillon"}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Messages */}
+        {(message || error) && (
+          <div className="mt-6">
+            {message && (
+              <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+                {message}
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[340px_1fr]">
+
+          {/* Colonne gauche */}
+          <aside className="space-y-6">
+
+            {/* Formulaire module */}
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <div className="mb-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-green-700">
+                  Programme
+                </p>
+
+                <h2 className="mt-1 text-xl font-bold text-slate-900">
+                  {editingModuleId
+                    ? "Modifier le module"
+                    : "Ajouter un module"}
+                </h2>
+
+                <p className="mt-2 text-sm leading-5 text-slate-500">
+                  Organisez votre formation en plusieurs modules
+                  pour structurer le parcours pédagogique.
+                </p>
+              </div>
+
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Nom du module
+              </label>
+
+              <input
+                type="text"
+                value={moduleTitle}
+                onChange={(event) =>
+                  setModuleTitle(event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                  ) {
+                    event.preventDefault();
+                    saveModule();
+                  }
+                }}
+                placeholder="Ex. Comprendre les bases"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              />
+
+              <div className="mt-4 flex flex-col gap-2">
+                <button
+                  onClick={saveModule}
+                  disabled={saving}
+                  className="w-full rounded-xl bg-green-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving
+                    ? "Enregistrement..."
+                    : editingModuleId
+                    ? "Enregistrer les modifications"
+                    : "Ajouter le module"}
+                </button>
+
+                {editingModuleId && (
+                  <button
+                    onClick={resetModuleForm}
+                    disabled={saving}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-black text-green-700">
-                      ✓
-                    </span>
-                    <p className="text-sm leading-6 text-slate-700">
-                      {item}
-                    </p>
-                  </div>
-                ))}
+                    Annuler
+                  </button>
+                )}
+              </div>
+            </section>
+
+            {/* Aide */}
+            <section className="rounded-2xl border border-green-100 bg-green-50 p-6">
+              <p className="text-sm font-bold text-green-900">
+                Organisation du contenu
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-green-800">
+                Chaque module peut contenir plusieurs leçons.
+                Depuis la gestion des leçons, vous pourrez ajouter
+                le contenu pédagogique, les vidéos, les PDF et les
+                quiz.
+              </p>
+            </section>
+          </aside>
+
+          {/* Colonne principale */}
+          <section>
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-green-700">
+                  Contenu pédagogique
+                </p>
+
+                <h2 className="mt-1 text-2xl font-bold text-slate-900">
+                  Modules de la formation
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  {modules.length} module
+                  {modules.length > 1 ? "s" : ""} ·{" "}
+                  {totalLessons} leçon
+                  {totalLessons > 1 ? "s" : ""}
+                </p>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-              <p className="text-xs font-bold uppercase tracking-widest text-green-700">
-                Programme
-              </p>
-
-              <h2 className="mt-2 text-2xl font-black text-slate-950">
-                Programme de la formation
-              </h2>
-
-              {dataError && (
-                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-sm font-semibold text-red-700">
-                    {dataError}
-                  </p>
+            {modules.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-50 text-2xl text-green-700">
+                  +
                 </div>
-              )}
 
-              <div className="mt-7 space-y-4">
-                {modules.length === 0 ? (
-                  <div className="rounded-2xl bg-slate-50 p-6">
-                    <p className="text-sm text-slate-500">
-                      Aucun module disponible pour le moment.
-                    </p>
-                  </div>
-                ) : (
-                  modules.map((module, index) => {
-                    const moduleLessons = lessons
-                      .filter((lesson) => lesson.module_id === module.id)
-                      .sort(
-                        (a, b) => a.order_number - b.order_number
-                      );
+                <h3 className="mt-4 text-lg font-bold text-slate-900">
+                  Aucun module pour le moment
+                </h3>
 
-                    return (
-                      <div
-                        key={module.id}
-                        className="overflow-hidden rounded-2xl border border-slate-200"
-                      >
-                        <div className="flex items-center gap-4 bg-slate-50 px-5 py-4">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 text-sm font-black text-green-700">
-                            {index + 1}
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                  Commencez par créer le premier module de cette
+                  formation dans le panneau à gauche.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {modules.map((module, index) => {
+                  const moduleLessons =
+                    getModuleLessons(module.id);
+
+                  return (
+                    <article
+                      key={module.id}
+                      className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200"
+                    >
+                      {/* En-tête module */}
+                      <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex gap-4">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-50 text-sm font-bold text-green-700">
+                              {String(index + 1).padStart(2, "0")}
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-green-700">
+                                Module {index + 1}
+                              </p>
+
+                              <h3 className="mt-1 text-lg font-bold text-slate-900">
+                                {module.title}
+                              </h3>
+
+                              <p className="mt-1 text-sm text-slate-500">
+                                {moduleLessons.length} leçon
+                                {moduleLessons.length > 1
+                                  ? "s"
+                                  : ""}
+                              </p>
+                            </div>
                           </div>
 
-                          <div>
-                            <h3 className="font-bold text-slate-900">
-                              {module.title}
-                            </h3>
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href={`/admin/formations/${courseId}/modules/${module.id}`}
+                              className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
+                            >
+                              Gérer les leçons
+                            </a>
 
-                            <p className="mt-1 text-xs text-slate-500">
-                              {moduleLessons.length} leçon
-                              {moduleLessons.length > 1 ? "s" : ""}
-                            </p>
+                            <button
+                              onClick={() =>
+                                startEditingModule(module)
+                              }
+                              className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                              Modifier
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                deleteModule(module.id)
+                              }
+                              disabled={saving}
+                              className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Supprimer
+                            </button>
                           </div>
                         </div>
+                      </div>
 
-                        {moduleLessons.length > 0 && (
+                      {/* Liste des leçons */}
+                      <div className="px-5 py-4 sm:px-6">
+                        {moduleLessons.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+                            <p className="text-sm font-medium text-slate-500">
+                              Aucune leçon dans ce module.
+                            </p>
+
+                            <a
+                              href={`/admin/formations/${courseId}/modules/${module.id}`}
+                              className="mt-2 inline-block text-sm font-semibold text-green-700 hover:underline"
+                            >
+                              Ajouter la première leçon
+                            </a>
+                          </div>
+                        ) : (
                           <div className="divide-y divide-slate-100">
-                            {moduleLessons.map((lesson) => (
-                              <div
-                                key={lesson.id}
-                                className="flex items-center justify-between gap-4 px-5 py-4"
-                              >
-                                <div className="flex min-w-0 items-center gap-3">
-                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500">
-                                    ▶
-                                  </span>
+                            {moduleLessons.map(
+                              (lesson, lessonIndex) => (
+                                <div
+                                  key={lesson.id}
+                                  className="flex items-center gap-4 py-3"
+                                >
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-500">
+                                    {lessonIndex + 1}
+                                  </div>
 
-                                  <span className="text-sm font-medium text-slate-700">
-                                    {lesson.title}
-                                  </span>
-                                </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-slate-800">
+                                      {lesson.title}
+                                    </p>
 
-                                {hasAccess ? (
-                                  <Link
-                                    href={`/formations/${formation.id}/lecons/${lesson.id}`}
-                                    className="shrink-0 text-sm font-bold text-green-700 hover:text-green-800"
+                                    <p className="mt-0.5 text-xs text-slate-400">
+                                      Leçon {lessonIndex + 1}
+                                    </p>
+                                  </div>
+
+                                  <a
+                                    href={`/admin/formations/${courseId}/modules/${module.id}`}
+                                    className="hidden text-xs font-semibold text-green-700 hover:underline sm:block"
                                   >
-                                    Ouvrir →
-                                  </Link>
-                                ) : (
-                                  <span className="shrink-0 text-xs font-semibold text-slate-400">
-                                    Verrouillée
-                                  </span>
-                                )}
-                              </div>
-                            ))}
+                                    Gérer
+                                  </a>
+                                </div>
+                              )
+                            )}
                           </div>
                         )}
                       </div>
-                    );
-                  })
-                )}
+                    </article>
+                  );
+                })}
               </div>
-            </div>
-          </div>
-
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
-
-              <div className="bg-slate-950 p-7 text-white">
-                <p className="text-sm text-slate-400">
-                  Accès à la formation
-                </p>
-
-                <div className="mt-2 text-3xl font-black">
-                  {formation.is_free
-                    ? "Gratuit"
-                    : `${formation.price.toLocaleString("fr-FR")} FCFA`}
-                </div>
-              </div>
-
-              <div className="p-7">
-
-                <div className="space-y-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Niveau</span>
-                    <span className="font-bold text-slate-800">
-                      {formation.level}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Durée</span>
-                    <span className="font-bold text-slate-800">
-                      {formation.duration}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Modules</span>
-                    <span className="font-bold text-slate-800">
-                      {modules.length}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Leçons</span>
-                    <span className="font-bold text-slate-800">
-                      {lessons.length}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="my-6 border-t border-slate-200" />
-
-                {hasAccess ? (
-                  <div>
-                    <div className="rounded-2xl bg-green-50 p-4">
-                      <p className="text-sm font-bold text-green-800">
-                        Vous avez accès à cette formation.
-                      </p>
-                    </div>
-
-                    {firstLesson && (
-                      <Link
-                        href={`/formations/${formation.id}/lecons/${firstLesson.id}`}
-                        className="mt-4 flex w-full items-center justify-center rounded-xl bg-green-700 px-5 py-4 text-sm font-bold text-white hover:bg-green-800"
-                      >
-                        Commencer la formation →
-                      </Link>
-                    )}
-                  </div>
-                ) : formation.is_free ? (
-                  <div>
-                    <button
-                      onClick={accederFormation}
-                      disabled={accessLoading}
-                      className="w-full rounded-xl bg-green-700 px-5 py-4 text-sm font-bold text-white hover:bg-green-800 disabled:opacity-60"
-                    >
-                      {accessLoading
-                        ? "Inscription en cours..."
-                        : "Accéder gratuitement"}
-                    </button>
-
-                    {message && (
-                      <p className="mt-3 rounded-xl bg-slate-50 p-3 text-center text-xs text-slate-600">
-                        {message}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <Link
-                    href="/paiement"
-                    className="flex w-full items-center justify-center rounded-xl bg-green-700 px-5 py-4 text-sm font-bold text-white hover:bg-green-800"
-                  >
-                    Acheter la formation →
-                  </Link>
-                )}
-
-              </div>
-            </div>
-          </aside>
-
+            )}
+          </section>
         </div>
-      </section>
-
-      <section className="px-6 pb-16 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-br from-green-800 to-emerald-600 px-7 py-12 sm:px-10">
-          <h2 className="text-3xl font-black text-white">
-            Prêt à commencer ?
-          </h2>
-
-          <p className="mt-3 max-w-2xl leading-7 text-green-50">
-            Avancez à votre rythme et développez des compétences directement utiles à votre activité.
-          </p>
-
-          <Link
-            href="/formations"
-            className="mt-6 inline-flex rounded-xl bg-white px-6 py-3 text-sm font-bold text-green-800 hover:bg-green-50"
-          >
-            Voir toutes les formations
-          </Link>
-        </div>
-      </section>
-
-      <Footer />
-
+      </div>
     </main>
   );
 }
