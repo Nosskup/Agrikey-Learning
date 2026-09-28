@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import CourseCover from "../../components/CourseCover";
+import Footer from "../../components/Footer";
 
 type Formation = {
   id: number;
@@ -399,83 +400,7 @@ export default function Formations() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-slate-950 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-
-          <div className="grid gap-8 md:grid-cols-4">
-
-            <div className="md:col-span-2">
-
-              <div className="text-xl font-black">
-                AGRIKEY
-                <span className="font-medium text-green-400">
-                  {" "}Learning
-                </span>
-              </div>
-
-              <p className="mt-3 max-w-md text-sm leading-6 text-slate-400">
-                Des formations pratiques pour développer vos compétences,
-                renforcer votre activité et progresser à votre rythme.
-              </p>
-
-              <p className="mt-4 text-sm font-medium text-slate-300">
-                Apprendre · progresser · entreprendre
-              </p>
-
-            </div>
-
-            <div>
-
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white">
-                Navigation
-              </h3>
-
-              <div className="mt-4 flex flex-col gap-2.5 text-sm text-slate-400">
-
-                <Link href="/" className="transition hover:text-green-400">
-                  Accueil
-                </Link>
-
-                <Link href="/formations" className="transition hover:text-green-400">
-                  Formations
-                </Link>
-
-                <Link href="/mon-espace" className="transition hover:text-green-400">
-                  Mon espace
-                </Link>
-
-              </div>
-
-            </div>
-
-            <div>
-
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white">
-                Compte
-              </h3>
-
-              <div className="mt-4 flex flex-col gap-2.5 text-sm text-slate-400">
-
-                <Link href="/connexion" className="transition hover:text-green-400">
-                  Connexion
-                </Link>
-
-                <Link href="/inscription" className="transition hover:text-green-400">
-                  Créer un compte
-                </Link>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div className="mt-8 border-t border-white/10 pt-5 text-xs text-slate-500">
-            © 2026 AGRIKEY Learning. Tous droits réservés.
-          </div>
-
-        </div>
-      </footer>
+      <Footer />
 
     </main>
   );
