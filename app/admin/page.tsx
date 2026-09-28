@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Course = {
@@ -13,6 +13,7 @@ type Course = {
   duration: string | null;
   published: boolean;
   is_free: boolean;
+  image_url: string | null;
 };
 
 type CourseStats = {
@@ -27,9 +28,14 @@ export default function AdminPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const [editingCourseId, setEditingCourseId] = useState<
+    number | null
+  >(null);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -39,6 +45,14 @@ export default function AdminPage() {
   const [duration, setDuration] = useState("");
   const [isFree, setIsFree] = useState(true);
   const [published, setPublished] = useState(false);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    null
+  );
+  const [existingImageUrl, setExistingImageUrl] = useState<
+    string | null
+  >(null);
 
   async function checkAdmin() {
     const {
@@ -72,7 +86,7 @@ export default function AdminPage() {
         await supabase
           .from("courses")
           .select(
-            "id, title, description, category, level, price, duration, published, is_free"
+            "id, title, description, category, level, price, duration, published, is_free, image_url"
           )
           .order("id", { ascending: false });
 
@@ -154,7 +168,91 @@ export default function AdminPage() {
     loadData();
   }, []);
 
-  async function createCourse() {
+  function resetCourseForm() {
+    setEditingCourseId(null);
+    setTitle("");
+    setDescription("");
+    setCategory("");
+    setLevel("Débutant");
+    setPrice("0");
+    setDuration("");
+    setIsFree(true);
+    setPublished(false);
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImageUrl(null);
+  }
+
+  function startEditingCourse(course: Course) {
+    setEditingCourseId(course.id);
+    setTitle(course.title);
+    setDescription(course.description || "");
+    setCategory(course.category || "");
+    setLevel(course.level || "Débutant");
+    setPrice(String(course.price ?? 0));
+    setDuration(course.duration || "");
+    setIsFree(course.is_free);
+    setPublished(course.published);
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImageUrl(course.image_url || null);
+
+    setMessage("");
+    setError("");
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleImageChange(
+    e: ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0] || null;
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  async function uploadCourseImage(
+    courseId: number
+  ): Promise<string | null> {
+    if (!imageFile) {
+      return existingImageUrl || null;
+    }
+
+    if (!imageFile.type.startsWith("image/")) {
+      throw new Error("Le fichier doit être une image.");
+    }
+
+    if (imageFile.size > 5 * 1024 * 1024) {
+      throw new Error("L'image ne doit pas dépasser 5 Mo.");
+    }
+
+    const extension =
+      imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+
+    const filePath = `${courseId}/${Date.now()}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("course-covers")
+      .upload(filePath, imageFile, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: imageFile.type,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage
+      .from("course-covers")
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  }
+
+  async function saveCourse() {
     if (!title.trim()) {
       setError("Le titre de la formation est obligatoire.");
       return;
@@ -165,8 +263,41 @@ export default function AdminPage() {
       setError("");
       setMessage("");
 
-      const { data, error: insertError } =
-        await supabase
+      if (editingCourseId) {
+        const uploadedImageUrl = await uploadCourseImage(
+          editingCourseId
+        );
+
+        const { data, error: updateError } = await supabase
+          .from("courses")
+          .update({
+            title: title.trim(),
+            description: description.trim() || null,
+            category: category.trim() || null,
+            level: level.trim() || "Débutant",
+            price: isFree ? 0 : Number(price) || 0,
+            duration: duration.trim() || null,
+            is_free: isFree,
+            published,
+            image_url: uploadedImageUrl,
+          })
+          .eq("id", editingCourseId)
+          .select(
+            "id, title, description, category, level, price, duration, published, is_free, image_url"
+          )
+          .single();
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setCourses(
+          courses.map((c) => (c.id === editingCourseId ? data : c))
+        );
+
+        setMessage("Formation modifiée avec succès.");
+      } else {
+        const { data, error: insertError } = await supabase
           .from("courses")
           .insert({
             title: title.trim(),
@@ -179,43 +310,86 @@ export default function AdminPage() {
             published,
           })
           .select(
-            "id, title, description, category, level, price, duration, published, is_free"
+            "id, title, description, category, level, price, duration, published, is_free, image_url"
           )
           .single();
 
-      if (insertError) {
-        throw insertError;
+        if (insertError) {
+          throw insertError;
+        }
+
+        // L'image ne peut être envoyée qu'une fois la formation
+        // créée : on a besoin de son id pour ranger le fichier.
+        const uploadedImageUrl = await uploadCourseImage(data.id);
+
+        if (uploadedImageUrl) {
+          const { error: imageUpdateError } = await supabase
+            .from("courses")
+            .update({ image_url: uploadedImageUrl })
+            .eq("id", data.id);
+
+          if (imageUpdateError) {
+            throw imageUpdateError;
+          }
+
+          data.image_url = uploadedImageUrl;
+        }
+
+        setCourses([data, ...courses]);
+
+        setStats({
+          ...stats,
+          [data.id]: {
+            modules: 0,
+            lessons: 0,
+            learners: 0,
+          },
+        });
+
+        setMessage("Formation créée avec succès.");
       }
 
-      setCourses([data, ...courses]);
-
-      setStats({
-        ...stats,
-        [data.id]: {
-          modules: 0,
-          lessons: 0,
-          learners: 0,
-        },
-      });
-
-      setTitle("");
-      setDescription("");
-      setCategory("");
-      setLevel("Débutant");
-      setPrice("0");
-      setDuration("");
-      setIsFree(true);
-      setPublished(false);
-
-      setMessage("Formation créée avec succès.");
+      resetCourseForm();
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Impossible de créer la formation."
+          : "Impossible d'enregistrer la formation."
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function togglePublished(course: Course) {
+    try {
+      setTogglingId(course.id);
+      setError("");
+
+      const { data, error: toggleError } = await supabase
+        .from("courses")
+        .update({ published: !course.published })
+        .eq("id", course.id)
+        .select(
+          "id, title, description, category, level, price, duration, published, is_free, image_url"
+        )
+        .single();
+
+      if (toggleError) {
+        throw toggleError;
+      }
+
+      setCourses(
+        courses.map((c) => (c.id === course.id ? data : c))
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de changer le statut de publication."
+      );
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -298,9 +472,22 @@ export default function AdminPage() {
         </section>
 
         <section className="mb-10 rounded-xl bg-white p-8 shadow">
-          <h2 className="mb-6 text-xl font-bold">
-            Créer une formation
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="mb-6 text-xl font-bold">
+              {editingCourseId
+                ? "Modifier la formation"
+                : "Créer une formation"}
+            </h2>
+
+            {editingCourseId && (
+              <button
+                onClick={resetCourseForm}
+                className="mb-6 text-sm font-semibold text-gray-500 hover:text-gray-800"
+              >
+                Annuler la modification
+              </button>
+            )}
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -384,14 +571,45 @@ export default function AdminPage() {
             className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
           />
 
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Image de couverture
+            </label>
+
+            <div className="flex flex-wrap items-center gap-4">
+              {(imagePreview || existingImageUrl) && (
+                <img
+                  src={imagePreview || existingImageUrl || ""}
+                  alt="Aperçu de la couverture"
+                  className="h-24 w-40 rounded-lg border border-gray-200 object-cover"
+                />
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="text-sm"
+              />
+            </div>
+
+            <p className="mt-2 text-xs text-gray-500">
+              Format JPG ou PNG, 5 Mo maximum. Sans image, une
+              couverture aux couleurs d'AGRIKEY est générée
+              automatiquement.
+            </p>
+          </div>
+
           <button
-            onClick={createCourse}
+            onClick={saveCourse}
             disabled={saving}
             className="mt-4 rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:opacity-50"
           >
             {saving
-              ? "Création..."
-              : "Créer la formation"}
+              ? "Enregistrement..."
+              : editingCourseId
+                ? "Enregistrer les modifications"
+                : "Créer la formation"}
           </button>
         </section>
 
@@ -501,6 +719,25 @@ export default function AdminPage() {
                     >
                       Gérer
                     </a>
+
+                    <button
+                      onClick={() => startEditingCourse(course)}
+                      className="rounded-lg border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Modifier
+                    </button>
+
+                    <button
+                      onClick={() => togglePublished(course)}
+                      disabled={togglingId === course.id}
+                      className="rounded-lg border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {togglingId === course.id
+                        ? "..."
+                        : course.published
+                          ? "Dépublier"
+                          : "Publier"}
+                    </button>
                   </div>
                 </div>
               );
