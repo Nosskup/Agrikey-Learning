@@ -19,7 +19,7 @@ type Formation = {
 type Module = {
   id: number;
   title: string;
-  order_number: number;
+ 
 };
 
 type Lesson = {
