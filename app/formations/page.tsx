@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import CourseCover from "../../components/CourseCover";
 
 type Formation = {
   id: number;
@@ -300,21 +301,10 @@ export default function Formations() {
                   {/* IMAGE */}
                   <div className="relative h-52 overflow-hidden bg-slate-200">
 
-                    {formation.id === 1 ? (
-                      <img
-                        src="/images/gestion-financiere.png?v=1"
-                        alt="Formation Gestion financière pour entrepreneurs"
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : formation.id === 2 ? (
-                      <img
-                        src="/images/gestion-entreprise.png?v=1"
-                        alt="Formation Les bases de l'entrepreneuriat"
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-green-800 via-green-700 to-emerald-500" />
-                    )}
+                    <CourseCover
+                      courseId={formation.id}
+                      title={formation.title}
+                    />
 
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
 
@@ -370,11 +360,7 @@ export default function Formations() {
                       </div>
 
                       <Link
-                        href={
-                          formation.id === 1
-                            ? "/formations/gestion-financiere"
-                            : `/formations/${formation.id}`
-                        }
+                        href={`/formations/${formation.id}`}
                         className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800"
                       >
                         Découvrir →

@@ -489,11 +489,7 @@ export default function AdminPage() {
 
                   <div className="mt-6 flex flex-wrap gap-3">
                     <a
-                      href={
-                        course.id === 1
-                          ? "/formations/gestion-financiere"
-                          : `/formations/${course.id}`
-                      }
+                      href={`/formations/${course.id}`}
                       className="rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-800"
                     >
                       Voir la formation

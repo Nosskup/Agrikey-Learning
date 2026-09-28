@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import CourseCover from "../components/CourseCover";
 
 type Formation = {
   id: number;
@@ -198,8 +199,8 @@ export default function HomePage() {
           </div>
 
           {loading ? (
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              {[1, 2].map((item) => (
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((item) => (
                 <div
                   key={item}
                   className="h-80 animate-pulse rounded-2xl bg-white"
@@ -207,28 +208,17 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              {formations.slice(0, 2).map((formation) => (
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {formations.slice(0, 3).map((formation) => (
                 <article
                   key={formation.id}
                   className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="relative h-48 overflow-hidden bg-slate-200">
-                    {formation.id === 1 ? (
-                      <img
-                        src="/images/gestion-financiere.png?v=1"
-                        alt="Formation Gestion financière pour entrepreneurs"
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : formation.id === 2 ? (
-                      <img
-                        src="/images/gestion-entreprise.png?v=1"
-                        alt="Formation Les bases de l'entrepreneuriat"
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-green-800 via-green-700 to-emerald-500" />
-                    )}
+                    <CourseCover
+                      courseId={formation.id}
+                      title={formation.title}
+                    />
 
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
                       <span className="rounded-full bg-black/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur">
@@ -371,12 +361,15 @@ export default function HomePage() {
                 <Link href="/formations" className="transition hover:text-green-400">
                   Toutes les formations
                 </Link>
-                <Link href="/formations/1" className="transition hover:text-green-400">
-                  Gestion financière
-                </Link>
-                <Link href="/formations/2" className="transition hover:text-green-400">
-                  Les bases de l'entrepreneuriat
-                </Link>
+                {formations.slice(0, 4).map((formation) => (
+                  <Link
+                    key={formation.id}
+                    href={`/formations/${formation.id}`}
+                    className="transition hover:text-green-400"
+                  >
+                    {formation.title}
+                  </Link>
+                ))}
               </div>
             </div>
 

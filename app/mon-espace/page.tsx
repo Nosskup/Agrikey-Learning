@@ -360,11 +360,7 @@ export default function MonEspacePage() {
                       </Link>
 
                       <Link
-                        href={
-                          course.id === 1
-                            ? "/formations/gestion-financiere"
-                            : `/formations/${course.id}`
-                        }
+                        href={`/formations/${course.id}`}
                         className="block w-full rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold text-gray-700 hover:bg-gray-50"
                       >
                         Revoir la formation
@@ -375,9 +371,7 @@ export default function MonEspacePage() {
                       href={
                         nextLessonId
                           ? `/formations/${course.id}/lecons/${nextLessonId}`
-                          : course.id === 1
-                            ? "/formations/gestion-financiere"
-                            : `/formations/${course.id}`
+                          : `/formations/${course.id}`
                       }
                       className="block w-full rounded-lg bg-green-700 px-5 py-3 text-center font-semibold text-white hover:bg-green-800"
                     >
