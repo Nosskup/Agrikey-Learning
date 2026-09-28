@@ -35,6 +35,7 @@ export default function LessonPage() {
     []
   );
   const [isCompleted, setIsCompleted] = useState(false);
+  const [hasQuiz, setHasQuiz] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -150,6 +151,18 @@ export default function LessonPage() {
 
           setCourseLessons(courseLessonsData || []);
         }
+
+        // Cette leçon possède-t-elle un quiz ? Si oui, on affichera
+        // un bouton pour y accéder (sans lui, une formation contenant
+        // un quiz ne pourrait jamais être terminée).
+        const { data: quizData } = await supabase
+          .from("quizzes")
+          .select("id")
+          .eq("lesson_id", lessonId)
+          .limit(1)
+          .maybeSingle();
+
+        setHasQuiz(!!quizData);
 
         const {
           data: { user },
@@ -349,11 +362,6 @@ export default function LessonPage() {
             {lesson.title}
           </h1>
 
-          {lesson.type && (
-            <p className="mt-2 text-sm text-slate-500">
-              Type de contenu : {lesson.type}
-            </p>
-          )}
         </div>
 
         {lesson.content && (
@@ -423,12 +431,6 @@ export default function LessonPage() {
           </section>
         )}
 
-        {!lesson.pdf_url && (
-          <div className="mb-8 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">
-            Aucun support PDF n'est associé à cette leçon.
-          </div>
-        )}
-
         <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           {isCompleted ? (
             <div className="rounded-xl bg-green-50 p-4 text-center font-semibold text-green-700">
@@ -446,6 +448,35 @@ export default function LessonPage() {
             </button>
           )}
         </section>
+
+        {hasQuiz && (
+          <section className="mb-8 rounded-2xl border border-green-200 bg-green-50 p-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-green-700">
+              Évaluation
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold text-slate-900">
+              Quiz de cette leçon
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Réussissez ce quiz avec au moins 70 % de bonnes
+              réponses pour valider la leçon. Il est nécessaire
+              pour obtenir le certificat de la formation.
+            </p>
+
+            <button
+              onClick={() =>
+                router.push(
+                  `/formations/${courseId}/lecons/${lessonId}/quiz`
+                )
+              }
+              className="mt-4 rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white hover:bg-green-800"
+            >
+              Passer le quiz →
+            </button>
+          </section>
+        )}
 
         <div className="flex flex-wrap justify-between gap-3">
           {previousLesson ? (
