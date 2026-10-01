@@ -502,7 +502,7 @@ export default function FormationDetailPage() {
                   </div>
                 ) : (
                   <Link
-                    href="/paiement"
+                    href={`/paiement?courseId=${formation.id}`}
                     className="flex w-full items-center justify-center rounded-xl bg-green-700 px-5 py-4 text-sm font-bold text-white hover:bg-green-800"
                   >
                     Acheter la formation →
