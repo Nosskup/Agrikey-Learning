@@ -125,12 +125,27 @@ export async function POST(request: NextRequest) {
         paydunyaData
       );
 
+      // Diagnostic temporaire, sans danger : ne révèle jamais la
+      // clé en entier, seulement sa longueur et ses deux extrémités,
+      // pour vérifier ce que le serveur reçoit réellement.
+      function apercu(valeur: string | undefined) {
+        if (!valeur) return "VIDE / NON DÉFINIE";
+        if (valeur.length <= 8) return `longueur ${valeur.length}`;
+        return `longueur ${valeur.length}, commence par "${valeur.slice(0, 4)}", finit par "${valeur.slice(-4)}"`;
+      }
+
       return NextResponse.json(
         {
           success: false,
           message:
             paydunyaData.response_text ||
             "Impossible de créer la facture de paiement.",
+          diagnostic: {
+            mode: PAYDUNYA_MODE,
+            master_key: apercu(process.env.PAYDUNYA_MASTER_KEY),
+            private_key: apercu(process.env.PAYDUNYA_PRIVATE_KEY),
+            token: apercu(process.env.PAYDUNYA_TOKEN),
+          },
         },
         { status: 502 }
       );
