@@ -536,9 +536,14 @@ export default function AdminModulePage() {
                 onChange={(event) =>
                   setVideoUrl(event.target.value)
                 }
-                placeholder="https://..."
+                placeholder="Lien YouTube, ou lien direct vers un fichier .mp4"
                 className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
               />
+
+              <p className="mt-1.5 text-xs text-slate-500">
+                Collez simplement l'adresse de la vidéo YouTube
+                telle qu'elle apparaît dans votre navigateur.
+              </p>
             </div>
 
             <div>
