@@ -21,14 +21,50 @@ type Module = {
   course_id: number;
 };
 
+/**
+ * Reconnaît un lien YouTube (toutes ses formes courantes :
+ * youtube.com/watch?v=, youtu.be/, youtube.com/shorts/,
+ * youtube.com/embed/) et renvoie son URL d'intégration (iframe).
+ * Renvoie null si ce n'est pas un lien YouTube : dans ce cas, la
+ * vidéo est traitée comme un fichier vidéo direct (.mp4...).
+ */
+function getYoutubeEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\.|^m\./, "");
+
+    let videoId: string | null = null;
+
+    if (host === "youtu.be") {
+      videoId = parsed.pathname.slice(1);
+    } else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      if (parsed.pathname === "/watch") {
+        videoId = parsed.searchParams.get("v");
+      } else if (parsed.pathname.startsWith("/embed/")) {
+        videoId = parsed.pathname.split("/embed/")[1];
+      } else if (parsed.pathname.startsWith("/shorts/")) {
+        videoId = parsed.pathname.split("/shorts/")[1];
+      }
+    } else {
+      return null;
+    }
+
+    videoId = videoId ? videoId.split(/[?&]/)[0] : null;
+
+    return videoId
+      ? `https://www.youtube-nocookie.com/embed/${videoId}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function LessonPage() {
   const params = useParams();
   const router = useRouter();
 
   const courseId = Number(params.id);
-  const lessonId = Number(params.lessonId);
-
-  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const lessonId = Number(params.lessonId);  const [lesson, setLesson] = useState<Lesson | null>(null);
   const [module, setModule] = useState<Module | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courseLessons, setCourseLessons] = useState<Lesson[]>(
@@ -387,14 +423,32 @@ export default function LessonPage() {
               Vidéo
             </h2>
 
-            <video
-              controls
-              className="w-full rounded-xl"
-            >
-              <source src={lesson.video_url} />
+            {(() => {
+              const youtubeEmbedUrl = getYoutubeEmbedUrl(
+                lesson.video_url
+              );
 
-              Votre navigateur ne peut pas lire cette vidéo.
-            </video>
+              if (youtubeEmbedUrl) {
+                return (
+                  <div className="aspect-video w-full overflow-hidden rounded-xl">
+                    <iframe
+                      src={youtubeEmbedUrl}
+                      title={`Vidéo - ${lesson.title}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="h-full w-full"
+                    />
+                  </div>
+                );
+              }
+
+              return (
+                <video controls className="w-full rounded-xl">
+                  <source src={lesson.video_url} />
+                  Votre navigateur ne peut pas lire cette vidéo.
+                </video>
+              );
+            })()}
           </section>
         )}
 
