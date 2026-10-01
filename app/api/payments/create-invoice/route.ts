@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
             user_id: user.id,
           },
           actions: {
-            cancel_url: `${origin}/paiement?annule=1`,
+            cancel_url: `${origin}/paiement?courseId=${courseId}&annule=1`,
             return_url: `${origin}/paiement/confirmation?courseId=${courseId}`,
             callback_url: `${origin}/api/payments/webhook`,
           },
