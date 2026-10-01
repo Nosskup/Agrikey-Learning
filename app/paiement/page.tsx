@@ -135,40 +135,6 @@ export default function Paiement() {
       return;
     }
 
-    const {
-      data: paiementExistant,
-    } = await supabase
-      .from("payments")
-      .select(
-        "id, amount, method, status, transaction_id"
-      )
-      .eq(
-        "user_id",
-        userData.user.id
-      )
-      .eq(
-        "course_id",
-        formation.id
-      )
-      .eq(
-        "status",
-        "pending"
-      )
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(1)
-      .maybeSingle();
-
-    if (paiementExistant) {
-      setMessage(
-        "Une commande de paiement est déjà en attente pour cette formation. Vous pouvez réessayer dans quelques minutes."
-      );
-
-      setTraitement(false);
-      return;
-    }
-
     try {
       const reponse = await fetch(
         "/api/payments/create-invoice",
