@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 
@@ -22,8 +22,10 @@ const moyensPaiement = [
   },
 ];
 
-export default function Paiement() {
+function PaiementContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const courseIdParam = searchParams.get("courseId");
 
   const [formation, setFormation] =
     useState<Formation | null>(null);
@@ -49,16 +51,23 @@ export default function Paiement() {
         return;
       }
 
+      const courseId = Number(courseIdParam);
+
+      if (!courseIdParam || Number.isNaN(courseId)) {
+        setMessage(
+          "Aucune formation sélectionnée. Repartez du catalogue pour choisir une formation à acheter."
+        );
+        setChargement(false);
+        return;
+      }
+
       const {
         data: formationData,
         error: formationError,
       } = await supabase
         .from("courses")
         .select("id, title, price")
-        .eq(
-          "title",
-          "Gestion financière pour entrepreneurs"
-        )
+        .eq("id", courseId)
         .single();
 
       if (
@@ -66,7 +75,7 @@ export default function Paiement() {
         !formationData
       ) {
         setMessage(
-          "Impossible de trouver la formation."
+          "Impossible de trouver cette formation."
         );
         setChargement(false);
         return;
@@ -77,7 +86,7 @@ export default function Paiement() {
     }
 
     chargerPaiement();
-  }, [router]);
+  }, [router, courseIdParam]);
 
   function choisirMethode(nom: string) {
     const moyen = moyensPaiement.find(
@@ -188,6 +197,30 @@ export default function Paiement() {
     );
   }
 
+  if (!formation) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-16">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg">
+          <h1 className="text-xl font-bold text-slate-900">
+            Formation introuvable
+          </h1>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            {message ||
+              "Impossible de charger cette formation."}
+          </p>
+
+          <Link
+            href="/formations"
+            className="mt-6 block w-full rounded-xl bg-green-700 px-5 py-3.5 text-sm font-bold text-white hover:bg-green-800"
+          >
+            Retour au catalogue
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
 
@@ -195,7 +228,7 @@ export default function Paiement() {
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-6 py-8 lg:px-8">
           <Link
-            href="/formations/1"
+            href={`/formations/${formation.id}`}
             className="text-sm font-semibold text-green-700 hover:text-green-800"
           >
             ← Retour à la formation
@@ -366,47 +399,43 @@ export default function Paiement() {
 
               <div className="p-6">
 
-                {formation && (
-                  <>
-                    <div>
-                      <p className="text-sm font-bold leading-6 text-slate-900">
-                        {formation.title}
-                      </p>
+                <div>
+                  <p className="text-sm font-bold leading-6 text-slate-900">
+                    {formation.title}
+                  </p>
 
-                      <p className="mt-1 text-sm text-slate-500">
-                        Formation en ligne
-                      </p>
-                    </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Formation en ligne
+                  </p>
+                </div>
 
-                    <div className="my-6 border-t border-slate-200" />
+                <div className="my-6 border-t border-slate-200" />
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500">
-                        Prix
-                      </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-500">
+                    Prix
+                  </span>
 
-                      <span className="font-bold text-slate-900">
-                        {formation.price.toLocaleString(
-                          "fr-FR"
-                        )}{" "}
-                        FCFA
-                      </span>
-                    </div>
+                  <span className="font-bold text-slate-900">
+                    {formation.price.toLocaleString(
+                      "fr-FR"
+                    )}{" "}
+                    FCFA
+                  </span>
+                </div>
 
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="font-bold text-slate-900">
-                        Total
-                      </span>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="font-bold text-slate-900">
+                    Total
+                  </span>
 
-                      <span className="text-2xl font-black text-green-700">
-                        {formation.price.toLocaleString(
-                          "fr-FR"
-                        )}{" "}
-                        FCFA
-                      </span>
-                    </div>
-                  </>
-                )}
+                  <span className="text-2xl font-black text-green-700">
+                    {formation.price.toLocaleString(
+                      "fr-FR"
+                    )}{" "}
+                    FCFA
+                  </span>
+                </div>
 
                 <button
                   type="button"
@@ -440,5 +469,24 @@ export default function Paiement() {
       </section>
 
     </main>
+  );
+}
+
+export default function Paiement() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50">
+          <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8">
+            <div className="animate-pulse">
+              <div className="h-5 w-32 rounded bg-slate-200" />
+              <div className="mt-8 h-12 max-w-xl rounded bg-slate-200" />
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <PaiementContent />
+    </Suspense>
   );
 }
