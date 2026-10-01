@@ -203,6 +203,12 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function removeImage() {
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImageUrl(null);
+  }
+
   function handleImageChange(
     e: ChangeEvent<HTMLInputElement>
   ) {
@@ -578,11 +584,21 @@ export default function AdminPage() {
 
             <div className="flex flex-wrap items-center gap-4">
               {(imagePreview || existingImageUrl) && (
-                <img
-                  src={imagePreview || existingImageUrl || ""}
-                  alt="Aperçu de la couverture"
-                  className="h-24 w-40 rounded-lg border border-gray-200 object-cover"
-                />
+                <>
+                  <img
+                    src={imagePreview || existingImageUrl || ""}
+                    alt="Aperçu de la couverture"
+                    className="h-24 w-40 rounded-lg border border-gray-200 object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="text-sm font-semibold text-red-600 hover:text-red-700"
+                  >
+                    Retirer l'image
+                  </button>
+                </>
               )}
 
               <input
