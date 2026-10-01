@@ -161,9 +161,13 @@ function PaiementContent() {
       const resultat = await reponse.json();
 
       if (!resultat.success) {
+        const diag = resultat.diagnostic
+          ? ` [Diagnostic — mode: ${resultat.diagnostic.mode}, master_key: ${resultat.diagnostic.master_key}, private_key: ${resultat.diagnostic.private_key}, token: ${resultat.diagnostic.token}]`
+          : "";
+
         setMessage(
-          resultat.message ||
-            "Impossible de créer le paiement."
+          (resultat.message ||
+            "Impossible de créer le paiement.") + diag
         );
 
         setTraitement(false);
