@@ -32,9 +32,19 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
         <div className="grid gap-8 md:grid-cols-4">
           <div className="md:col-span-2">
-            <div className="text-xl font-black">
-              AGRIKEY
-              <span className="font-medium text-green-400"> Learning</span>
+            <div className="flex items-center gap-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5">
+                <img
+                  src="/images/logo.png"
+                  alt="AGRIKEY — De la stratégie à l'impact"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              <div className="text-xl font-black">
+                AGRIKEY
+                <span className="font-medium text-green-400"> Learning</span>
+              </div>
             </div>
 
             <p className="mt-3 max-w-md text-sm leading-6 text-slate-400">

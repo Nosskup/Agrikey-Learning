@@ -66,9 +66,11 @@ export default function Navbar() {
           onClick={() => setMenuOuvert(false)}
           className="flex items-center gap-2"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-600 text-sm font-bold text-white">
-            A
-          </div>
+          <img
+            src="/images/logo-emblem.png"
+            alt="AGRIKEY Learning"
+            className="h-10 w-10 object-contain"
+          />
 
           <div className="leading-tight">
             <div className="text-base font-bold text-slate-900">
