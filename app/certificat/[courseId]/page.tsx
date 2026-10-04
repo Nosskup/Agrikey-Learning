@@ -236,11 +236,11 @@ export default function CertificatePage() {
                 {/* En-tête : logo + titre, en bandeau compact */}
                 <div>
                   <div className="flex items-center justify-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-green-700">
-                      <span className="text-base font-bold text-green-700">
-                        A
-                      </span>
-                    </div>
+                    <img
+                      src="/images/logo-emblem.png"
+                      alt="AGRIKEY"
+                      className="h-11 w-11 shrink-0 object-contain"
+                    />
 
                     <div className="text-left">
                       <p className="text-xs font-bold uppercase tracking-[0.35em] text-green-700">
