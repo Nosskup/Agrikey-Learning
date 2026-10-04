@@ -115,8 +115,12 @@ export default function InscriptionPage() {
 
             <Link href="/" className="inline-block">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-xl font-black text-green-700">
-                  A
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white p-1">
+                  <img
+                    src="/images/logo-emblem.png"
+                    alt="AGRIKEY Learning"
+                    className="h-full w-full object-contain"
+                  />
                 </div>
 
                 <div>
@@ -216,9 +220,11 @@ export default function InscriptionPage() {
             {/* Logo mobile */}
             <div className="mb-10 lg:hidden">
               <Link href="/" className="inline-flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-600 text-lg font-black text-white">
-                  A
-                </div>
+                <img
+                  src="/images/logo-emblem.png"
+                  alt="AGRIKEY Learning"
+                  className="h-12 w-12 object-contain"
+                />
 
                 <div>
                   <div className="text-xl font-black text-slate-900">
