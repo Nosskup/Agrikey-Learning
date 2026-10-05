@@ -21,6 +21,21 @@ type Course = {
   instructor_bio: string | null;
 };
 
+type DeletePreview = {
+  title: string;
+  modules: number;
+  lessons: number;
+  quizzes: number;
+  questions: number;
+  learners: number;
+  quiz_attempts: number;
+  certificates: number;
+  payments_kept: number;
+  payments_pending: number;
+  blocked: boolean;
+  reasons: string[];
+};
+
 type CourseStats = {
   modules: number;
   lessons: number;
@@ -34,6 +49,14 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  // Suppression définitive d'une formation
+  const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
+  const [deletePreview, setDeletePreview] = useState<DeletePreview | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -426,6 +449,135 @@ export default function AdminPage() {
       );
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  // Supprime les fichiers (couverture, PDF) d'une formation supprimée.
+  // Fait au mieux : la formation est déjà supprimée de la base à ce stade.
+  async function removeStorageFolder(
+    bucket: string,
+    prefix: string,
+    depth = 0
+  ) {
+    // Garde-fou : on ne descend jamais plus de 4 niveaux de dossiers.
+    if (depth > 4) return;
+
+    try {
+      const { data: entries } = await supabase.storage
+        .from(bucket)
+        .list(prefix, { limit: 1000 });
+
+      if (!entries || entries.length === 0) return;
+
+      const files: string[] = [];
+
+      for (const entry of entries) {
+        const entryPath = `${prefix}/${entry.name}`;
+
+        if (entry.id === null) {
+          await removeStorageFolder(bucket, entryPath, depth + 1);
+        } else {
+          files.push(entryPath);
+        }
+      }
+
+      if (files.length > 0) {
+        await supabase.storage.from(bucket).remove(files);
+      }
+    } catch {
+      // Nettoyage des fichiers non bloquant.
+    }
+  }
+
+  async function openDeleteDialog(course: Course) {
+    setDeleteTarget(course);
+    setDeletePreview(null);
+    setDeleteConfirmText("");
+    setDeleteError("");
+    setDeleteLoading(true);
+
+    try {
+      // Aperçu : ne supprime rien, mesure seulement l'impact.
+      const { data, error: previewError } = await supabase.rpc(
+        "admin_delete_course",
+        { p_course_id: course.id, p_confirm: false }
+      );
+
+      if (previewError) {
+        throw previewError;
+      }
+
+      setDeletePreview(data as DeletePreview);
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de mesurer l'impact de la suppression."
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeletePreview(null);
+    setDeleteConfirmText("");
+    setDeleteError("");
+  }
+
+  async function confirmDeleteCourse() {
+    if (!deleteTarget || !deletePreview || deletePreview.blocked) return;
+    if (deleteConfirmText.trim() !== "SUPPRIMER") return;
+
+    const course = deleteTarget;
+
+    try {
+      setDeleting(true);
+      setDeleteError("");
+
+      const { error: deleteRpcError } = await supabase.rpc(
+        "admin_delete_course",
+        { p_course_id: course.id, p_confirm: true }
+      );
+
+      if (deleteRpcError) {
+        throw deleteRpcError;
+      }
+
+      // Base nettoyée : on retire la formation de l'écran…
+      setCourses((current) => current.filter((c) => c.id !== course.id));
+      setStats((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(([id]) => Number(id) !== course.id)
+        )
+      );
+
+      if (editingCourseId === course.id) {
+        resetCourseForm();
+      }
+
+      // …puis on supprime ses fichiers (couverture et PDF).
+      await removeStorageFolder("course-covers", String(course.id));
+      await removeStorageFolder("course-pdfs", String(course.id));
+
+      setMessage(
+        `La formation « ${course.title} » a été supprimée définitivement.`
+      );
+      setError("");
+      setDeleteTarget(null);
+      setDeletePreview(null);
+      setDeleteConfirmText("");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : "La suppression a échoué. Rien n'a été supprimé."
+      );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -861,6 +1013,13 @@ export default function AdminPage() {
                           ? "Dépublier"
                           : "Publier"}
                     </button>
+
+                    <button
+                      onClick={() => openDeleteDialog(course)}
+                      className="rounded-lg border border-red-300 px-5 py-3 font-semibold text-red-700 hover:bg-red-50"
+                    >
+                      Supprimer
+                    </button>
                   </div>
                 </div>
               );
@@ -868,6 +1027,177 @@ export default function AdminPage() {
           </div>
         </section>
       </div>
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-title"
+          onClick={closeDeleteDialog}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-7 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-red-600">
+              Suppression définitive
+            </p>
+
+            <h2
+              id="delete-title"
+              className="mt-2 text-xl font-bold text-gray-900"
+            >
+              {deleteTarget.title}
+            </h2>
+
+            {deleteLoading && (
+              <p className="mt-5 text-sm text-gray-500">
+                Analyse de ce qui serait supprimé...
+              </p>
+            )}
+
+            {deleteError && (
+              <p className="mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+                {deleteError}
+              </p>
+            )}
+
+            {deletePreview && deletePreview.blocked && (
+              <div className="mt-5">
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+                  <p className="text-sm font-bold text-amber-900">
+                    Cette formation ne peut pas être supprimée.
+                  </p>
+
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900">
+                    {deletePreview.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <p className="mt-4 text-sm text-gray-600">
+                  Pour la retirer du catalogue sans rien perdre, vous pouvez
+                  la <strong>dépublier</strong> : elle disparaît pour les
+                  visiteurs, mais les certificats et l'historique restent
+                  valides.
+                </p>
+
+                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                  <button
+                    onClick={closeDeleteDialog}
+                    className="rounded-lg border border-gray-300 px-5 py-2.5 font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Fermer
+                  </button>
+
+                  {deleteTarget.published && (
+                    <button
+                      onClick={async () => {
+                        const course = deleteTarget;
+                        closeDeleteDialog();
+                        await togglePublished(course);
+                      }}
+                      className="rounded-lg bg-gray-900 px-5 py-2.5 font-semibold text-white hover:bg-gray-800"
+                    >
+                      Dépublier à la place
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {deletePreview && !deletePreview.blocked && (
+              <div className="mt-5">
+                <p className="text-sm font-semibold text-gray-800">
+                  Seront définitivement supprimés :
+                </p>
+
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                  <li>
+                    {deletePreview.modules} module(s) et{" "}
+                    {deletePreview.lessons} leçon(s)
+                  </li>
+                  <li>
+                    {deletePreview.quizzes} quiz et{" "}
+                    {deletePreview.questions} question(s)
+                  </li>
+                  <li>
+                    {deletePreview.learners} inscription(s) d'apprenants, avec
+                    leur progression et leurs résultats de quiz (
+                    {deletePreview.quiz_attempts} tentative(s))
+                  </li>
+                  {deletePreview.payments_pending > 0 && (
+                    <li>
+                      {deletePreview.payments_pending} commande(s) de paiement
+                      jamais payée(s)
+                    </li>
+                  )}
+                  <li>L'image de couverture et les fichiers PDF</li>
+                </ul>
+
+                {deletePreview.learners > 0 && (
+                  <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm font-medium text-amber-900">
+                    Attention : {deletePreview.learners} apprenant(s) perdront
+                    l'accès à cette formation et toute leur progression.
+                  </p>
+                )}
+
+                <p className="mt-4 text-sm font-bold text-red-700">
+                  Cette action est irréversible.
+                </p>
+
+                <label className="mt-4 block text-sm font-semibold text-gray-700">
+                  Pour confirmer, tapez SUPPRIMER :
+                </label>
+
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="SUPPRIMER"
+                  autoComplete="off"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-red-500"
+                />
+
+                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                  <button
+                    onClick={closeDeleteDialog}
+                    disabled={deleting}
+                    className="rounded-lg border border-gray-300 px-5 py-2.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Annuler
+                  </button>
+
+                  <button
+                    onClick={confirmDeleteCourse}
+                    disabled={
+                      deleting || deleteConfirmText.trim() !== "SUPPRIMER"
+                    }
+                    className="rounded-lg bg-red-600 px-5 py-2.5 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {deleting
+                      ? "Suppression..."
+                      : "Supprimer définitivement"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!deleteLoading && !deletePreview && deleteError && (
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={closeDeleteDialog}
+                  className="rounded-lg border border-gray-300 px-5 py-2.5 font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
