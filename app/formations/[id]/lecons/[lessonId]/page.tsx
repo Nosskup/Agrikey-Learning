@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../../lib/supabase";
+import LessonContent, {
+  readingTimeMinutes,
+} from "../../../../../components/LessonContent";
 
 type Lesson = {
   id: number;
@@ -392,28 +395,38 @@ export default function LessonPage() {
 
           <p className="mt-2 text-sm text-slate-500">
             Leçon {currentIndex + 1} sur {lessons.length}
+            {lesson.content &&
+              ` · environ ${readingTimeMinutes(lesson.content)} min de lecture`}
           </p>
 
           <h1 className="mt-2 text-3xl font-black text-slate-900">
             {lesson.title}
           </h1>
 
+          {courseLessons.length > 1 && courseIndex >= 0 && (
+            <div className="mt-5">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-500">
+                <span>Progression dans la formation</span>
+                <span>
+                  {courseIndex + 1} / {courseLessons.length}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-green-600 transition-all"
+                  style={{
+                    width: `${((courseIndex + 1) / courseLessons.length) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
         </div>
 
         {lesson.content && (
-          <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <div className="space-y-5">
-              {lesson.content
-                .split("\n\n")
-                .map((paragraph, index) => (
-                  <p
-                    key={index}
-                    className="text-base leading-8 text-slate-700"
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-            </div>
+          <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
+            <LessonContent content={lesson.content} />
           </section>
         )}
 
