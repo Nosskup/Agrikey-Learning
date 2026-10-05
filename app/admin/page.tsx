@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [newPartnerRequests, setNewPartnerRequests] = useState(0);
 
   // Suppression définitive d'une formation
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
@@ -186,6 +187,14 @@ export default function AdminPage() {
       }
 
       setStats(newStats);
+
+      // Nouvelles demandes de partenariat (sans bloquer la page si la table n'existe pas encore).
+      const { count: newRequests } = await supabase
+        .from("partner_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "new");
+
+      setNewPartnerRequests(newRequests || 0);
     } catch (err) {
       setError(
         err instanceof Error
@@ -607,6 +616,18 @@ export default function AdminPage() {
           <p className="mt-2 text-gray-600">
             Gérez vos formations, modules, leçons et quiz.
           </p>
+
+          <a
+            href="/admin/partenaires"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Demandes de partenariat
+            {newPartnerRequests > 0 && (
+              <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
+                {newPartnerRequests} nouvelle{newPartnerRequests > 1 ? "s" : ""}
+              </span>
+            )}
+          </a>
         </div>
 
         {message && (
