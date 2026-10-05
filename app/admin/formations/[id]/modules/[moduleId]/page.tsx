@@ -519,10 +519,55 @@ export default function AdminModulePage() {
                 onChange={(event) =>
                   setLessonContent(event.target.value)
                 }
-                rows={10}
+                rows={18}
                 placeholder="Rédigez ici le contenu pédagogique de la leçon..."
-                className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm leading-6 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
               />
+
+              <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <summary className="cursor-pointer font-semibold text-green-800">
+                  Aide à la mise en forme (titres, listes, tableaux, encadrés)
+                </summary>
+
+                <div className="mt-3 space-y-3 leading-6">
+                  <p>
+                    Un texte simple, avec une ligne vide entre les
+                    paragraphes, fonctionne comme avant. Pour une leçon
+                    plus riche, vous pouvez écrire :
+                  </p>
+
+                  <pre className="overflow-x-auto rounded-lg bg-white p-3 text-xs leading-5 text-slate-800 ring-1 ring-slate-200">{`# Titre de section
+## Sous-titre
+
+Un paragraphe avec du **gras** et de l'*italique*.
+
+- une puce
+- une autre puce
+
+1. première étape
+2. deuxième étape
+
+| Poste | Montant |
+| --- | --- |
+| Semences | 15 000 FCFA |
+| Engrais | 25 000 FCFA |
+
+> [!retenir] L'idée essentielle de la leçon.
+> [!astuce] Un conseil pratique.
+> [!attention] Une erreur à éviter.
+> [!exemple] Un cas concret.
+> [!exercice] Une activité à faire soi-même.
+
+![Description de l'image](https://adresse-de-l-image)
+[texte du lien](https://adresse)
+---  (ligne de séparation)`}</pre>
+
+                  <p className="text-xs text-slate-500">
+                    L'aperçu exact s'affiche sur la page de la leçon,
+                    côté apprenant.
+                  </p>
+                </div>
+              </details>
             </div>
 
             <div>
