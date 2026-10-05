@@ -14,6 +14,11 @@ type Course = {
   published: boolean;
   is_free: boolean;
   image_url: string | null;
+  objectives: string | null;
+  audience: string | null;
+  prerequisites: string | null;
+  instructor_name: string | null;
+  instructor_bio: string | null;
 };
 
 type CourseStats = {
@@ -45,6 +50,11 @@ export default function AdminPage() {
   const [duration, setDuration] = useState("");
   const [isFree, setIsFree] = useState(true);
   const [published, setPublished] = useState(false);
+  const [objectives, setObjectives] = useState("");
+  const [audience, setAudience] = useState("");
+  const [prerequisites, setPrerequisites] = useState("");
+  const [instructorName, setInstructorName] = useState("");
+  const [instructorBio, setInstructorBio] = useState("");
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
@@ -86,7 +96,7 @@ export default function AdminPage() {
         await supabase
           .from("courses")
           .select(
-            "id, title, description, category, level, price, duration, published, is_free, image_url"
+            "id, title, description, category, level, price, duration, published, is_free, image_url, objectives, audience, prerequisites, instructor_name, instructor_bio"
           )
           .order("id", { ascending: false });
 
@@ -178,6 +188,11 @@ export default function AdminPage() {
     setDuration("");
     setIsFree(true);
     setPublished(false);
+    setObjectives("");
+    setAudience("");
+    setPrerequisites("");
+    setInstructorName("");
+    setInstructorBio("");
     setImageFile(null);
     setImagePreview(null);
     setExistingImageUrl(null);
@@ -193,6 +208,11 @@ export default function AdminPage() {
     setDuration(course.duration || "");
     setIsFree(course.is_free);
     setPublished(course.published);
+    setObjectives(course.objectives || "");
+    setAudience(course.audience || "");
+    setPrerequisites(course.prerequisites || "");
+    setInstructorName(course.instructor_name || "");
+    setInstructorBio(course.instructor_bio || "");
     setImageFile(null);
     setImagePreview(null);
     setExistingImageUrl(course.image_url || null);
@@ -286,10 +306,15 @@ export default function AdminPage() {
             is_free: isFree,
             published,
             image_url: uploadedImageUrl,
+            objectives: objectives.trim() || null,
+            audience: audience.trim() || null,
+            prerequisites: prerequisites.trim() || null,
+            instructor_name: instructorName.trim() || null,
+            instructor_bio: instructorBio.trim() || null,
           })
           .eq("id", editingCourseId)
           .select(
-            "id, title, description, category, level, price, duration, published, is_free, image_url"
+            "id, title, description, category, level, price, duration, published, is_free, image_url, objectives, audience, prerequisites, instructor_name, instructor_bio"
           )
           .single();
 
@@ -314,9 +339,14 @@ export default function AdminPage() {
             duration: duration.trim() || null,
             is_free: isFree,
             published,
+            objectives: objectives.trim() || null,
+            audience: audience.trim() || null,
+            prerequisites: prerequisites.trim() || null,
+            instructor_name: instructorName.trim() || null,
+            instructor_bio: instructorBio.trim() || null,
           })
           .select(
-            "id, title, description, category, level, price, duration, published, is_free, image_url"
+            "id, title, description, category, level, price, duration, published, is_free, image_url, objectives, audience, prerequisites, instructor_name, instructor_bio"
           )
           .single();
 
@@ -377,7 +407,7 @@ export default function AdminPage() {
         .update({ published: !course.published })
         .eq("id", course.id)
         .select(
-          "id, title, description, category, level, price, duration, published, is_free, image_url"
+          "id, title, description, category, level, price, duration, published, is_free, image_url, objectives, audience, prerequisites, instructor_name, instructor_bio"
         )
         .single();
 
@@ -576,6 +606,83 @@ export default function AdminPage() {
             rows={5}
             className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
           />
+
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <h3 className="text-base font-bold text-gray-900">
+              Page de présentation de la formation
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Ces informations s'affichent sur la page publique de la
+              formation. Ce qui est laissé vide n'est pas affiché.
+            </p>
+
+            <label className="mb-1 mt-5 block text-sm font-semibold text-gray-700">
+              Objectifs : ce que l'apprenant saura faire (un par ligne)
+            </label>
+            <textarea
+              value={objectives}
+              onChange={(e) => setObjectives(e.target.value)}
+              placeholder={"Rédiger une note conceptuelle structurée\nConstruire un cadre logique cohérent\nSuivre les indicateurs d'un projet"}
+              rows={5}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+            />
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  Pour qui ?
+                </label>
+                <textarea
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value)}
+                  placeholder="Ex. Jeunes entrepreneurs et responsables de petites structures"
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  Prérequis
+                </label>
+                <textarea
+                  value={prerequisites}
+                  onChange={(e) => setPrerequisites(e.target.value)}
+                  placeholder="Ex. Aucun prérequis. Savoir lire et utiliser un téléphone."
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  Nom du formateur ou de l'organisation
+                </label>
+                <input
+                  type="text"
+                  value={instructorName}
+                  onChange={(e) => setInstructorName(e.target.value)}
+                  placeholder="Ex. Adama KEITA, ou nom d'un partenaire"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  Présentation du formateur (2 à 3 phrases)
+                </label>
+                <textarea
+                  value={instructorBio}
+                  onChange={(e) => setInstructorBio(e.target.value)}
+                  placeholder="Parcours, expertise, expérience..."
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="mt-4">
             <label className="mb-2 block text-sm font-semibold text-gray-700">
