@@ -17,6 +17,11 @@ type Formation = {
   is_free: boolean;
   published: boolean;
   image_url: string | null;
+  objectives: string | null;
+  audience: string | null;
+  prerequisites: string | null;
+  instructor_name: string | null;
+  instructor_bio: string | null;
 };
 
 type Module = {
@@ -58,7 +63,7 @@ export default function FormationDetailPage() {
         await supabase
           .from("courses")
           .select(
-            "id,title,category,level,price,duration,description,is_free,published,image_url"
+            "id,title,category,level,price,duration,description,is_free,published,image_url,objectives,audience,prerequisites,instructor_name,instructor_bio"
           )
           .eq("id", formationId)
           .single();
@@ -233,6 +238,12 @@ export default function FormationDetailPage() {
 
   const firstLesson = lessons[0];
 
+  // Objectifs saisis par le formateur, un par ligne.
+  const objectifs = (formation.objectives || "")
+    .split("\n")
+    .map((ligne) => ligne.trim())
+    .filter(Boolean);
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
 
@@ -274,6 +285,15 @@ export default function FormationDetailPage() {
                 "Une formation pratique pour développer vos compétences et progresser dans vos projets."}
             </p>
 
+            {formation.instructor_name && (
+              <p className="mt-4 text-sm font-semibold text-green-100">
+                Formation proposée par{" "}
+                <span className="text-white">
+                  {formation.instructor_name}
+                </span>
+              </p>
+            )}
+
             <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-white">
               <span className="rounded-lg bg-white/10 px-4 py-2">
                 {formation.level}
@@ -294,32 +314,77 @@ export default function FormationDetailPage() {
 
           <div className="space-y-8">
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-              <h2 className="text-2xl font-black text-slate-950">
-                Ce que vous allez apprendre
-              </h2>
+            {objectifs.length > 0 && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+                <h2 className="text-2xl font-black text-slate-950">
+                  Ce que vous allez apprendre
+                </h2>
 
-              <div className="mt-7 grid gap-5 sm:grid-cols-2">
-                {[
-                  "Comprendre les notions essentielles liées à votre activité",
-                  "Mieux organiser et suivre votre activité",
-                  "Prendre de meilleures décisions",
-                  "Appliquer les connaissances à votre situation",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex gap-3 rounded-2xl bg-slate-50 p-4"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-black text-green-700">
-                      ✓
-                    </span>
-                    <p className="text-sm leading-6 text-slate-700">
-                      {item}
+                <div className="mt-7 grid gap-5 sm:grid-cols-2">
+                  {objectifs.map((item) => (
+                    <div
+                      key={item}
+                      className="flex gap-3 rounded-2xl bg-slate-50 p-4"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-black text-green-700">
+                        ✓
+                      </span>
+                      <p className="text-sm leading-6 text-slate-700">
+                        {item}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(formation.audience || formation.prerequisites) && (
+              <div className="grid gap-5 sm:grid-cols-2">
+                {formation.audience && (
+                  <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-widest text-green-700">
+                      Pour qui ?
+                    </p>
+                    <p className="mt-3 text-sm leading-7 text-slate-700">
+                      {formation.audience}
                     </p>
                   </div>
-                ))}
+                )}
+
+                {formation.prerequisites && (
+                  <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-widest text-green-700">
+                      Prérequis
+                    </p>
+                    <p className="mt-3 text-sm leading-7 text-slate-700">
+                      {formation.prerequisites}
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
+
+            {formation.instructor_name && (
+              <div className="flex gap-5 rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-700 text-xl font-black text-white">
+                  {formation.instructor_name.trim().charAt(0).toUpperCase()}
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-green-700">
+                    Votre formateur
+                  </p>
+                  <h3 className="mt-1 text-lg font-black text-slate-900">
+                    {formation.instructor_name}
+                  </h3>
+                  {formation.instructor_bio && (
+                    <p className="mt-2 text-sm leading-7 text-slate-600">
+                      {formation.instructor_bio}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
               <p className="text-xs font-bold uppercase tracking-widest text-green-700">
