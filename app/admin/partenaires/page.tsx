@@ -1,409 +1,398 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import Footer from "../../components/Footer";
-import PartnerForm from "../../components/PartnerForm";
-import PartnerShowcase from "../../components/PartnerShowcase";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Devenir partenaire",
-  description:
-    "Experts, centres de formation, ONG et entreprises : transformez une expertise en formation numérique avec AGRIKEY Learning, de la conception à la mise en ligne.",
-  openGraph: {
-    title: "Devenir partenaire d'AGRIKEY Learning",
-    description:
-      "Digitalisez vos formations, formez vos bénéficiaires, suivez les apprentissages.",
-    images: [{ url: "/images/og-agrikey.png", width: 1200, height: 630 }],
-  },
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import { PARTNER_TYPES } from "@/lib/partner-request";
+
+type Status = "new" | "contacted" | "closed";
+
+type PartnerRequest = {
+  id: number;
+  created_at: string;
+  full_name: string;
+  organization: string | null;
+  partner_type: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  status: Status;
+  admin_notes: string | null;
 };
 
-const PROFILES = [
-  {
-    title: "Experts et formateurs",
-    text: "Transformez votre expertise en formation numérique et valorisez vos connaissances auprès d'un public plus large.",
-  },
-  {
-    title: "Centres de formation et universités",
-    text: "Digitalisez une partie de vos formations et proposez à vos apprenants une expérience complémentaire en ligne.",
-  },
-  {
-    title: "ONG et projets de développement",
-    text: "Déployez des parcours de formation numériques pour vos bénéficiaires, avec leur progression suivie leçon après leçon.",
-  },
-  {
-    title: "Entreprises et organisations",
-    text: "Formez vos collaborateurs et développez leurs compétences à travers des parcours adaptés à vos besoins.",
-  },
-];
+const STATUS_LABEL: Record<Status, string> = {
+  new: "Nouvelle",
+  contacted: "Contactée",
+  closed: "Clôturée",
+};
 
-const STEPS = [
-  {
-    title: "Analyser votre besoin",
-    text: "Public cible, compétences à développer, objectifs, contenus déjà disponibles.",
-  },
-  {
-    title: "Digitaliser vos contenus",
-    text: "Leçons, vidéos, supports PDF, fiches pratiques, quiz et exercices.",
-  },
-  {
-    title: "Construire le parcours",
-    text: "Des modules et des leçons structurés, avec des objectifs clairs et une progression cohérente.",
-  },
-  {
-    title: "Mettre en ligne",
-    text: "Votre formation est publiée sur AGRIKEY Learning, avec le nom et la présentation du formateur.",
-  },
-  {
-    title: "Accompagner le lancement",
-    text: "Inscription des participants, communication auprès des bénéficiaires, prise en main.",
-  },
-  {
-    title: "Évaluer et améliorer",
-    text: "Les résultats et les retours des apprenants servent à améliorer la formation.",
-  },
-];
+const STATUS_STYLE: Record<Status, string> = {
+  new: "bg-amber-100 text-amber-800",
+  contacted: "bg-blue-100 text-blue-800",
+  closed: "bg-gray-200 text-gray-700",
+};
 
-const MODELS = [
-  {
-    title: "Digitalisation d'une formation existante",
-    text: "Vous avez déjà les contenus : nous les transformons en parcours numérique.",
-  },
-  {
-    title: "Conception d'un nouveau parcours",
-    text: "Nous vous accompagnons de la conception pédagogique jusqu'à la mise en ligne.",
-  },
-  {
-    title: "Formation sponsorisée",
-    text: "Votre organisation finance l'accès à la formation pour un groupe de bénéficiaires.",
-  },
-  {
-    title: "Partage de revenus",
-    text: "Pour une formation payante, les revenus sont répartis selon des conditions définies ensemble.",
-  },
-];
+type Filter = "all" | Status;
 
-const APPROACHES = [
-  {
-    title: "Une approche locale",
-    text: "Pensée pour les réalités des organisations et des apprenants au Mali et en Afrique francophone.",
-  },
-  {
-    title: "Une approche pédagogique",
-    text: "Nous ne mettons pas seulement des PDF en ligne : nous travaillons la manière dont les apprenants acquièrent réellement les compétences.",
-  },
-  {
-    title: "Une approche flexible",
-    text: "Le dispositif s'adapte au contenu, au public, aux objectifs et aux ressources disponibles.",
-  },
-  {
-    title: "Une approche collaborative",
-    text: "Votre organisation reste au cœur de la conception et de la validation des contenus.",
-  },
-];
+function typeLabel(value: string) {
+  return PARTNER_TYPES.find((t) => t.value === value)?.label ?? value;
+}
 
-const HIGHLIGHTS = [
-  "Un parcours structuré en modules, leçons et quiz",
-  "Un certificat vérifiable pour vos apprenants",
-  "Votre nom et votre présentation en tête de la formation",
-  "Utilisable sur téléphone, à leur rythme",
-];
+export default function AdminPartnersPage() {
+  const [requests, setRequests] = useState<PartnerRequest[]>([]);
+  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [filter, setFilter] = useState<Filter>("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-const PILOT = [
-  "1 formation",
-  "1 parcours numérique",
-  "1 groupe d'apprenants",
-  "Suivi de la progression",
-  "Évaluation des participants",
-  "Bilan et recommandations",
-];
+  useEffect(() => {
+    async function load() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-export default function PartenairesPage() {
-  // Coordonnées facultatives : affichées seulement si elles sont définies
-  // dans les variables d'environnement (jamais de texte « à compléter » en ligne).
-  const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
-  const contactPhone = process.env.NEXT_PUBLIC_CONTACT_PHONE;
+        if (!user) {
+          throw new Error("Vous devez être connecté.");
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+
+        if (profileError || profile?.role !== "admin") {
+          throw new Error("Accès réservé aux administrateurs.");
+        }
+
+        const { data, error: listError } = await supabase
+          .from("partner_requests")
+          .select(
+            "id, created_at, full_name, organization, partner_type, email, phone, message, status, admin_notes"
+          )
+          .order("created_at", { ascending: false });
+
+        if (listError) {
+          throw listError;
+        }
+
+        const loaded = (data || []) as PartnerRequest[];
+        setRequests(loaded);
+        setNotes(
+          Object.fromEntries(loaded.map((r) => [r.id, r.admin_notes || ""]))
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Une erreur est survenue."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  const counts = useMemo(
+    () => ({
+      all: requests.length,
+      new: requests.filter((r) => r.status === "new").length,
+      contacted: requests.filter((r) => r.status === "contacted").length,
+      closed: requests.filter((r) => r.status === "closed").length,
+    }),
+    [requests]
+  );
+
+  const visible = useMemo(
+    () => (filter === "all" ? requests : requests.filter((r) => r.status === filter)),
+    [requests, filter]
+  );
+
+  async function save(
+    id: number,
+    changes: Partial<Pick<PartnerRequest, "status" | "admin_notes">>,
+    success: string
+  ) {
+    try {
+      setBusyId(id);
+      setError("");
+      setMessage("");
+
+      const { error: updateError } = await supabase
+        .from("partner_requests")
+        .update(changes)
+        .eq("id", id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setRequests((current) =>
+        current.map((r) => (r.id === id ? { ...r, ...changes } : r))
+      );
+      setMessage(success);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "L'enregistrement a échoué."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function remove(id: number) {
+    try {
+      setBusyId(id);
+      setError("");
+      setMessage("");
+
+      const { error: deleteError } = await supabase
+        .from("partner_requests")
+        .delete()
+        .eq("id", id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      setRequests((current) => current.filter((r) => r.id !== id));
+      setConfirmDeleteId(null);
+      setMessage("La demande a été supprimée.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "La suppression a échoué."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-5xl">
+          <p>Chargement des demandes...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-800 text-white">
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-green-400/10 blur-3xl" />
+    <main className="min-h-screen bg-gray-50 p-8">
+      <div className="mx-auto max-w-5xl">
+        <Link
+          href="/admin"
+          className="text-sm font-semibold text-green-700 hover:text-green-800"
+        >
+          ← Retour à l'administration
+        </Link>
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-2 lg:px-8 lg:py-20">
-          <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-green-100">
-              <span className="h-2 w-2 rounded-full bg-green-400" />
-              Partenariats
-            </div>
+        <h1 className="mt-3 text-3xl font-bold text-gray-900">
+          Demandes de partenariat
+        </h1>
 
-            <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl">
-              Transformez une expertise en{" "}
-              <span className="text-green-300">formation numérique.</span>
-            </h1>
+        <p className="mt-2 text-gray-600">
+          Les demandes envoyées depuis la page « Devenir partenaire ». Aucune
+          notification n'est envoyée automatiquement : consultez cette page
+          régulièrement.
+        </p>
 
-            <p className="mt-6 max-w-xl text-base leading-7 text-green-50/90 sm:text-lg">
-              AGRIKEY Learning accompagne les experts, les centres de
-              formation, les ONG et les entreprises dans la conception, la mise
-              en ligne et le suivi de formations professionnelles.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="#contact"
-                className="rounded-xl bg-white px-6 py-3.5 text-center text-sm font-bold text-green-900 shadow-lg transition hover:bg-green-50"
-              >
-                Nous contacter
-              </a>
-
-              <Link
-                href="/formations"
-                className="rounded-xl border border-white/30 px-6 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
-              >
-                Voir les formations →
-              </Link>
-            </div>
+        {message && (
+          <div className="mt-6 rounded-lg bg-green-100 p-4 text-green-800">
+            {message}
           </div>
+        )}
 
-          <div className="rounded-3xl border border-white/15 bg-white/10 p-7 backdrop-blur">
-            <p className="text-xs font-bold uppercase tracking-widest text-green-200">
-              Ce que vous obtenez
-            </p>
-
-            <ul className="mt-5 space-y-4">
-              {HIGHLIGHTS.map((item) => (
-                <li key={item} className="flex gap-3 text-sm leading-6 text-white">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-400 text-xs font-black text-green-950">
-                    ✓
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
+        {error && (
+          <div className="mt-6 rounded-lg bg-red-100 p-4 text-red-800">
+            {error}
           </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(
+            [
+              ["all", "Toutes"],
+              ["new", "Nouvelles"],
+              ["contacted", "Contactées"],
+              ["closed", "Clôturées"],
+            ] as [Filter, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              aria-pressed={filter === key}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                filter === key
+                  ? "bg-green-700 text-white"
+                  : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {label} ({counts[key]})
+            </button>
+          ))}
         </div>
-      </section>
 
-      {/* POUR QUI */}
-      <section className="py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-green-700">
-            Pour qui ?
-          </p>
-
-          <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-            Quatre profils de partenaires
-          </h2>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            {PROFILES.map((profile) => (
-              <div
-                key={profile.title}
-                className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"
-              >
-                <h3 className="text-lg font-bold text-slate-900">
-                  {profile.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {profile.text}
-                </p>
-              </div>
-            ))}
+        {visible.length === 0 && !error && (
+          <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">
+            {requests.length === 0
+              ? "Aucune demande reçue pour le moment."
+              : "Aucune demande dans cette catégorie."}
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* COMMENT ÇA SE PASSE */}
-      <section className="bg-green-50/60 py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-green-700">
-            Comment ça se passe
-          </p>
+        <div className="mt-8 space-y-5">
+          {visible.map((request) => (
+            <article
+              key={request.id}
+              className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {request.full_name}
+                    {request.organization && (
+                      <span className="font-medium text-gray-500">
+                        {" "}
+                        · {request.organization}
+                      </span>
+                    )}
+                  </h2>
 
-          <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-            De votre expertise à une formation en ligne
-          </h2>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {STEPS.map((step, index) => (
-              <div
-                key={step.title}
-                className="rounded-2xl border border-green-100 bg-white p-6 shadow-sm"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-700 text-sm font-black text-white">
-                  {index + 1}
+                  <p className="mt-1 text-sm text-gray-500">
+                    {typeLabel(request.partner_type)} ·{" "}
+                    {new Date(request.created_at).toLocaleString("fr-FR", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
                 </div>
-                <h3 className="mt-4 text-base font-bold text-slate-900">
-                  {step.title}
-                </h3>
-                <p className="mt-1.5 text-sm leading-6 text-slate-600">
-                  {step.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* VITRINE : formations réellement publiées */}
-      <PartnerShowcase />
-
-      {/* PILOTE */}
-      <section className="py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-green-950 to-green-800 p-8 text-white sm:p-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-green-300">
-              Commencer simplement
-            </p>
-
-            <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">
-              Un premier pilote, avant tout engagement plus large
-            </h2>
-
-            <p className="mt-4 max-w-2xl text-base leading-7 text-green-50/90">
-              Nous proposons de tester la collaboration sur une seule formation
-              ou un seul module. Cela permet de mesurer concrètement la valeur
-              du dispositif avant un déploiement à plus grande échelle.
-            </p>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {PILOT.map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold"
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLE[request.status]}`}
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-400 text-xs font-black text-green-950">
-                    ✓
-                  </span>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* MODÈLES */}
-      <section className="pb-16 lg:pb-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-green-700">
-            Modèles de collaboration
-          </p>
-
-          <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-            Plusieurs formules, selon votre projet
-          </h2>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {MODELS.map((model) => (
-              <div
-                key={model.title}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-              >
-                <h3 className="text-base font-bold text-slate-900">
-                  {model.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {model.text}
-                </p>
+                  {STATUS_LABEL[request.status]}
+                </span>
               </div>
-            ))}
-          </div>
 
-          <p className="mt-6 max-w-3xl text-sm text-slate-500">
-            Les modalités sont définies au cas par cas, selon le niveau de
-            production, les responsabilités de chaque partie et le modèle de
-            diffusion.
-          </p>
-        </div>
-      </section>
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                <a
+                  href={`mailto:${request.email}`}
+                  className="font-semibold text-green-700 hover:text-green-800"
+                >
+                  {request.email}
+                </a>
 
-      {/* POURQUOI */}
-      <section className="bg-slate-50 py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-green-700">
-            Pourquoi AGRIKEY Learning ?
-          </p>
-
-          <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-            Quatre façons de travailler ensemble
-          </h2>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            {APPROACHES.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-slate-200 bg-white p-7"
-              >
-                <h3 className="text-lg font-bold text-green-800">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {item.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CONTACT */}
-      <section id="contact" className="scroll-mt-20 py-16 lg:py-24">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-5 lg:px-8">
-          <div className="lg:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-widest text-green-700">
-              Parlons de votre besoin
-            </p>
-
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              Construisons ensemble votre première formation
-            </h2>
-
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              Vous avez déjà une formation, un programme à déployer, ou une
-              expertise à transmettre ? Décrivez-nous votre besoin en quelques
-              lignes : nous reviendrons vers vous.
-            </p>
-
-            {(contactEmail || contactPhone) && (
-              <div className="mt-8 space-y-3 text-sm">
-                <p className="font-bold text-slate-900">
-                  Vous pouvez aussi nous joindre directement :
-                </p>
-
-                {contactEmail && (
-                  <p>
-                    <span className="text-slate-500">E-mail : </span>
-                    <a
-                      href={`mailto:${contactEmail}`}
-                      className="font-semibold text-green-700 hover:text-green-800"
-                    >
-                      {contactEmail}
-                    </a>
-                  </p>
-                )}
-
-                {contactPhone && (
-                  <p>
-                    <span className="text-slate-500">Téléphone : </span>
-                    <a
-                      href={`tel:${contactPhone.replace(/\s+/g, "")}`}
-                      className="font-semibold text-green-700 hover:text-green-800"
-                    >
-                      {contactPhone}
-                    </a>
-                  </p>
+                {request.phone && (
+                  <a
+                    href={`tel:${request.phone.replace(/\s+/g, "")}`}
+                    className="font-semibold text-green-700 hover:text-green-800"
+                  >
+                    {request.phone}
+                  </a>
                 )}
               </div>
-            )}
-          </div>
 
-          <div className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-green-900/5 sm:p-8 lg:col-span-3">
-            <PartnerForm />
-          </div>
+              {/* Texte brut : le contenu saisi par un visiteur n'est jamais interprété comme du HTML. */}
+              <p className="mt-4 whitespace-pre-wrap rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-800">
+                {request.message}
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {(["new", "contacted", "closed"] as Status[]).map((s) => (
+                  <button
+                    key={s}
+                    disabled={busyId === request.id || request.status === s}
+                    onClick={() =>
+                      save(
+                        request.id,
+                        { status: s },
+                        `Statut changé : ${STATUS_LABEL[s].toLowerCase()}.`
+                      )
+                    }
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Marquer « {STATUS_LABEL[s].toLowerCase()} »
+                  </button>
+                ))}
+              </div>
+
+              <label
+                htmlFor={`note-${request.id}`}
+                className="mt-5 block text-sm font-semibold text-gray-700"
+              >
+                Notes internes (invisibles du demandeur)
+              </label>
+
+              <textarea
+                id={`note-${request.id}`}
+                rows={3}
+                maxLength={4000}
+                value={notes[request.id] ?? ""}
+                onChange={(e) =>
+                  setNotes((current) => ({
+                    ...current,
+                    [request.id]: e.target.value,
+                  }))
+                }
+                placeholder="Échanges, rendez-vous, suites à donner..."
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-green-600"
+              />
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  disabled={
+                    busyId === request.id ||
+                    (notes[request.id] ?? "") === (request.admin_notes ?? "")
+                  }
+                  onClick={() =>
+                    save(
+                      request.id,
+                      { admin_notes: (notes[request.id] ?? "").trim() || null },
+                      "Notes enregistrées."
+                    )
+                  }
+                  className="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-40"
+                >
+                  Enregistrer les notes
+                </button>
+
+                {confirmDeleteId === request.id ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-red-700">
+                      Supprimer définitivement ?
+                    </span>
+                    <button
+                      disabled={busyId === request.id}
+                      onClick={() => remove(request.id)}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      Oui, supprimer
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDeleteId(request.id)}
+                    className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50"
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
-      </section>
-
-      <Footer />
+      </div>
     </main>
   );
 }
