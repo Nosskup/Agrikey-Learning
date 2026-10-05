@@ -106,6 +106,17 @@ export default function Navbar() {
             Formations
           </Link>
 
+          <Link
+            href="/partenaires"
+            className={`text-sm font-medium transition ${
+              lienActif("/partenaires")
+                ? "text-green-600"
+                : "text-slate-600 hover:text-green-600"
+            }`}
+          >
+            Partenaires
+          </Link>
+
           {user && (
             <Link
               href="/mon-espace"
@@ -188,6 +199,18 @@ export default function Navbar() {
               }`}
             >
               Formations
+            </Link>
+
+            <Link
+              href="/partenaires"
+              onClick={() => setMenuOuvert(false)}
+              className={`rounded-lg px-3 py-3 text-sm font-medium ${
+                lienActif("/partenaires")
+                  ? "bg-green-50 text-green-700"
+                  : "text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Partenaires
             </Link>
 
             {user && (

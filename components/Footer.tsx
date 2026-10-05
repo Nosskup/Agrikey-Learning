@@ -106,6 +106,12 @@ export default function Footer() {
               >
                 Créer un compte
               </Link>
+              <Link
+                href="/partenaires"
+                className="transition hover:text-green-400"
+              >
+                Devenir partenaire
+              </Link>
             </div>
           </div>
         </div>
