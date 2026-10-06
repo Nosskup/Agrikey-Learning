@@ -48,6 +48,13 @@ export default function AdminPartnersPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+  // Test de la notification par e-mail
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    text: string;
+  } | null>(null);
+
   useEffect(() => {
     async function load() {
       try {
@@ -171,6 +178,41 @@ export default function AdminPartnersPage() {
     }
   }
 
+  async function sendTestEmail() {
+    try {
+      setTesting(true);
+      setTestResult(null);
+
+      const response = await fetch("/api/partners", { method: "PUT" });
+
+      let data: { ok?: boolean; error?: string; to?: string } = {};
+      try {
+        data = await response.json();
+      } catch {
+        // réponse illisible : message générique ci-dessous
+      }
+
+      if (response.ok && data.ok) {
+        setTestResult({
+          ok: true,
+          text: `E-mail de test envoyé à ${data.to}. Vérifiez votre boîte de réception, et le dossier des courriers indésirables.`,
+        });
+      } else {
+        setTestResult({
+          ok: false,
+          text: data.error || "L'envoi du test a échoué.",
+        });
+      }
+    } catch {
+      setTestResult({
+        ok: false,
+        text: "Impossible de joindre le serveur. Vérifiez votre connexion.",
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
@@ -196,10 +238,45 @@ export default function AdminPartnersPage() {
         </h1>
 
         <p className="mt-2 text-gray-600">
-          Les demandes envoyées depuis la page « Devenir partenaire ». Aucune
-          notification n'est envoyée automatiquement : consultez cette page
-          régulièrement.
+          Les demandes envoyées depuis la page « Devenir partenaire ». Si la
+          notification par e-mail est réglée, vous êtes prévenu à chaque
+          nouvelle demande ; sinon, consultez cette page régulièrement.
         </p>
+
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-gray-900">
+                Notification par e-mail
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Envoie un message de test pour vérifier que vous recevrez un
+                e-mail à chaque nouvelle demande.
+              </p>
+            </div>
+
+            <button
+              onClick={sendTestEmail}
+              disabled={testing}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {testing ? "Envoi en cours..." : "Envoyer un e-mail de test"}
+            </button>
+          </div>
+
+          {testResult && (
+            <p
+              role={testResult.ok ? "status" : "alert"}
+              className={`mt-4 rounded-lg p-3 text-sm font-medium ${
+                testResult.ok
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {testResult.text}
+            </p>
+          )}
+        </div>
 
         {message && (
           <div className="mt-6 rounded-lg bg-green-100 p-4 text-green-800">
