@@ -143,6 +143,11 @@ export type PartnerDeps = {
   countByEmailSince: (email: string, sinceIso: string) => Promise<number>;
   countAllSince: (sinceIso: string) => Promise<number>;
   insert: (row: PartnerRequestRow) => Promise<{ error: string | null }>;
+  /**
+   * Facultatif : prévient l'équipe (e-mail) APRÈS l'enregistrement.
+   * Une erreur ici est ignorée : la demande est déjà conservée.
+   */
+  notify?: (row: PartnerRequestRow) => Promise<void>;
 };
 
 export type PartnerResponse = {
@@ -199,6 +204,15 @@ export async function processPartnerRequest(
         status: 500,
         body: { ok: false, error: "Votre demande n'a pas pu être enregistrée. Merci de réessayer." },
       };
+    }
+
+    // La demande est enregistrée : la notification est un bonus, jamais une condition.
+    if (deps.notify) {
+      try {
+        await deps.notify(validation.row);
+      } catch {
+        // volontairement ignoré
+      }
     }
 
     return { status: 200, body: { ok: true } };
