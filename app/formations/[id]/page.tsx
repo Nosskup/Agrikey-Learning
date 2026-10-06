@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import Footer from "../../../components/Footer";
+import CourseCover from "../../../components/CourseCover";
+import { hasCoverImage } from "../../../lib/course-cover";
 
 type Formation = {
   id: number;
@@ -238,6 +240,8 @@ export default function FormationDetailPage() {
 
   const firstLesson = lessons[0];
 
+  const hasImage = hasCoverImage(formation.id, formation.image_url);
+
   // Objectifs saisis par le formateur, un par ligne.
   const objectifs = (formation.objectives || "")
     .split("\n")
@@ -256,6 +260,13 @@ export default function FormationDetailPage() {
 
       <section className="overflow-hidden bg-gradient-to-br from-green-900 via-green-800 to-emerald-700">
         <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8 lg:py-20">
+          <div
+            className={
+              hasImage
+                ? "grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_440px]"
+                : ""
+            }
+          >
           <div className="max-w-4xl">
             <Link
               href="/formations"
@@ -305,6 +316,19 @@ export default function FormationDetailPage() {
                 {lessons.length} leçon{lessons.length > 1 ? "s" : ""}
               </span>
             </div>
+          </div>
+
+          {hasImage && (
+            <div className="overflow-hidden rounded-2xl border border-white/20 shadow-2xl shadow-black/30">
+              <CourseCover
+                framed
+                priority
+                courseId={formation.id}
+                title={formation.title}
+                imageUrl={formation.image_url}
+              />
+            </div>
+          )}
           </div>
         </div>
       </section>
