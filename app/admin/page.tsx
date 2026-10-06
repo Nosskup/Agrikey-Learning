@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabase";
+import { prepareCoverImage } from "@/lib/prepare-cover-image";
 
 type Course = {
   id: number;
@@ -81,6 +82,7 @@ export default function AdminPage() {
   const [instructorBio, setInstructorBio] = useState("");
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageBusy, setImageBusy] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(
     null
   );
@@ -261,12 +263,29 @@ export default function AdminPage() {
     setExistingImageUrl(null);
   }
 
-  function handleImageChange(
+  async function handleImageChange(
     e: ChangeEvent<HTMLInputElement>
   ) {
-    const file = e.target.files?.[0] || null;
-    setImageFile(file);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
+    const original = e.target.files?.[0] || null;
+
+    if (!original) {
+      setImageFile(null);
+      setImagePreview(null);
+      return;
+    }
+
+    try {
+      setImageBusy(true);
+
+      // Réduit la photo (1600 px de large au plus) pour qu'elle s'affiche vite
+      // et passe toujours la limite de poids.
+      const prepared = await prepareCoverImage(original);
+
+      setImageFile(prepared);
+      setImagePreview(URL.createObjectURL(prepared));
+    } finally {
+      setImageBusy(false);
+    }
   }
 
   async function uploadCourseImage(
@@ -868,7 +887,7 @@ export default function AdminPage() {
                   <img
                     src={imagePreview || existingImageUrl || ""}
                     alt="Aperçu de la couverture"
-                    className="h-24 w-40 rounded-lg border border-gray-200 object-cover"
+                    className="aspect-video w-48 rounded-lg border border-gray-200 object-cover"
                   />
 
                   <button
@@ -890,15 +909,23 @@ export default function AdminPage() {
             </div>
 
             <p className="mt-2 text-xs text-gray-500">
-              Format JPG ou PNG, 5 Mo maximum. Sans image, une
-              couverture aux couleurs d'AGRIKEY est générée
-              automatiquement.
+              Choisissez une photo horizontale (format 16:9, par
+              exemple 1280 × 720 px) : c'est ainsi qu'elle s'affiche.
+              Une photo verticale est recadrée au centre. La photo est
+              automatiquement réduite pour s'afficher vite. Sans image,
+              une couverture aux couleurs d'AGRIKEY est générée.
             </p>
+
+            {imageBusy && (
+              <p className="mt-1 text-xs font-semibold text-green-700">
+                Préparation de l'image...
+              </p>
+            )}
           </div>
 
           <button
             onClick={saveCourse}
-            disabled={saving}
+            disabled={saving || imageBusy}
             className="mt-4 rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:opacity-50"
           >
             {saving
