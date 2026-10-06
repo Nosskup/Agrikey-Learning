@@ -1,21 +1,20 @@
+"use client";
+
+import { useState } from "react";
+import { coverSource } from "../lib/course-cover";
+
 type CourseCoverProps = {
   courseId: number;
   title: string;
   imageUrl?: string | null;
-};
-
-/**
- * Images des formations créées avant ce composant.
- * Toute nouvelle formation reçoit automatiquement une couverture
- * aux couleurs de la marque (voir plus bas), sans rien à ajouter ici.
- *
- * À terme, ces images pourront être remplacées par une colonne
- * image_url dans la table courses (le composant l'accepte déjà
- * via la propriété imageUrl).
- */
-const KNOWN_COVERS: Record<number, string> = {
-  1: "/images/gestion-financiere.png?v=1",
-  2: "/images/gestion-entreprise.png?v=1",
+  /**
+   * Le composant fournit lui-même un cadre 16:9.
+   * À utiliser quand la page ne prévoit pas de cadre à hauteur fixe autour.
+   * Sans cette option, le composant remplit le cadre de la page (h-full).
+   */
+  framed?: boolean;
+  /** Image visible dès l'ouverture de la page : chargée sans attendre. */
+  priority?: boolean;
 };
 
 const GRADIENTS = [
@@ -30,19 +29,48 @@ export default function CourseCover({
   courseId,
   title,
   imageUrl,
+  framed = false,
+  priority = false,
 }: CourseCoverProps) {
-  const src = imageUrl || KNOWN_COVERS[courseId];
+  const src = coverSource(courseId, imageUrl);
 
-  if (src) {
+  // Si l'image ne se charge pas (lien cassé, fichier supprimé), on montre
+  // le visuel de marque au lieu d'une icône d'image brisée.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  const showImage = src !== null && failedSrc !== src;
+
+  const content = showImage ? (
+    <img
+      src={src}
+      alt={`Couverture de la formation ${title}`}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      onError={() => setFailedSrc(src)}
+      className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+    />
+  ) : (
+    <BrandCover courseId={courseId} title={title} />
+  );
+
+  if (framed) {
     return (
-      <img
-        src={src}
-        alt={`Couverture de la formation ${title}`}
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-      />
+      <div className="relative aspect-video w-full overflow-hidden bg-slate-200">
+        <div className="absolute inset-0">{content}</div>
+      </div>
     );
   }
 
+  return content;
+}
+
+function BrandCover({
+  courseId,
+  title,
+}: {
+  courseId: number;
+  title: string;
+}) {
   const gradient = GRADIENTS[Math.abs(courseId) % GRADIENTS.length];
 
   return (

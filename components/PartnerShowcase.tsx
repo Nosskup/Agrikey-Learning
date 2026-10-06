@@ -75,6 +75,7 @@ export default function PartnerShowcase() {
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md"
             >
               <CourseCover
+                framed
                 courseId={course.id}
                 title={course.title}
                 imageUrl={course.image_url}
