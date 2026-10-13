@@ -83,3 +83,10 @@ export function lireMois(param: string | string[] | undefined): Mois {
     suivant: cle(annee, mois + 1),
   };
 }
+
+/** "2026-10-14" + 7 -> "2026-10-21" */
+export function ajouterJours(date: string, jours: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + jours);
+  return d.toISOString().slice(0, 10);
+}

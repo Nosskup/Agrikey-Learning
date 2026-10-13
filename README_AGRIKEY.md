@@ -474,6 +474,9 @@ Pages :
 - `/pme` : tableau de bord ;
 - `/pme/entreprise` : profil et logo ;
 - `/pme/affiches` : « Bientôt disponible » + « Me prévenir » ;
-- `/pme/caisse`, `/pme/projets`, `/pme/documents` : à construire (jours 2 et 3).
+- `/pme/caisse` : journal de caisse (ajout, liste du mois, modification, catégories,
+  export PDF via `/pme/caisse/imprimer` et CSV via `/pme/caisse/export`) ;
+- `/pme/projets` : projets, tâches, vue « À faire cette semaine », progression ;
+- `/pme/documents` : à construire (jour 3).
 
 Code : `app/pme/`, `components/pme/`, `lib/pme/`. Validation des saisies dans `app/pme/actions.ts`.

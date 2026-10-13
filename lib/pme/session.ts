@@ -67,3 +67,28 @@ export type Operation = {
   note: string | null;
   date: string;
 };
+
+export type Projet = {
+  id: string;
+  nom: string;
+  description: string | null;
+  date_debut: string | null;
+  date_fin: string | null;
+};
+
+export type StatutTache = "a_faire" | "en_cours" | "termine";
+
+export type Tache = {
+  id: string;
+  projet_id: string;
+  titre: string;
+  responsable: string | null;
+  echeance: string | null;
+  statut: StatutTache;
+};
+
+export const LIBELLES_STATUT: Record<StatutTache, string> = {
+  a_faire: "À faire",
+  en_cours: "En cours",
+  termine: "Terminé",
+};
