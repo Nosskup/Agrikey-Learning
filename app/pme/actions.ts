@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { utilisateurConnecte } from "@/lib/pme/session";
 import {
   couleurValide,
   emailValide,
@@ -14,15 +15,6 @@ export type EtatFormulaire = {
   erreur?: string;
   succes?: string;
 };
-
-async function utilisateurConnecte() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
 
 // ---------------------------------------------------------------------
 // Compte

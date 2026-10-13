@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { inscrire, type EtatFormulaire } from "../actions";
+import { inscrire } from "../actions";
+import { useFormulaire } from "@/components/pme/useFormulaire";
 import Message from "@/components/pme/Message";
 import { boutonPrincipal, champ, etiquette } from "@/components/pme/styles";
 
 export default function InscriptionPme() {
-  const [etat, action, enCours] = useActionState<EtatFormulaire, FormData>(inscrire, {});
+  const { etat, enCours, proprietes } = useFormulaire(inscrire);
 
   return (
     <div className="space-y-6">
@@ -21,7 +21,7 @@ export default function InscriptionPme() {
       {etat.succes ? (
         <Message etat={etat} />
       ) : (
-        <form action={action} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+        <form {...proprietes} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
           <div>
             <label htmlFor="nom_entreprise" className={etiquette}>
               Nom de votre entreprise

@@ -43,3 +43,32 @@ button {
     display: none !important;
   }
 }
+/* Impression AGRIKEY PME : page A4 propre, sans fond ni cadre. */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  body,
+  body > div {
+    background: #ffffff !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .feuille-a4 {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt;
+  }
+
+  .feuille-a4 * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { connecter, type EtatFormulaire } from "../actions";
+import { connecter } from "../actions";
+import { useFormulaire } from "@/components/pme/useFormulaire";
 import Message from "@/components/pme/Message";
 import { boutonPrincipal, champ, etiquette } from "@/components/pme/styles";
 
 export default function ConnexionPme() {
-  const [etat, action, enCours] = useActionState<EtatFormulaire, FormData>(connecter, {});
+  const { etat, enCours, proprietes } = useFormulaire(connecter);
 
   return (
     <div className="space-y-6">
@@ -16,7 +16,7 @@ export default function ConnexionPme() {
         <p className="mt-2 text-base text-slate-600">Retrouvez votre caisse, vos projets et vos documents.</p>
       </div>
 
-      <form action={action} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+      <form {...proprietes} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
         <div>
           <label htmlFor="email" className={etiquette}>
             Adresse e-mail

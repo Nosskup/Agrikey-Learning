@@ -42,3 +42,28 @@ export async function exigerEntreprise() {
 
   return { supabase, user, entreprise };
 }
+
+/** Client Supabase et utilisateur connecté (null si déconnecté), pour les actions. */
+export async function utilisateurConnecte() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return { supabase, user };
+}
+
+export type Categorie = {
+  id: string;
+  nom: string;
+  type: "recu" | "depense" | "tous";
+};
+
+export type Operation = {
+  id: string;
+  type: "recu" | "depense";
+  montant: number;
+  categorie_id: string | null;
+  note: string | null;
+  date: string;
+};

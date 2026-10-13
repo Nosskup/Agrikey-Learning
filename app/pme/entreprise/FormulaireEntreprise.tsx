@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { enregistrerEntreprise, type EtatFormulaire } from "../actions";
+import { useState } from "react";
+import { enregistrerEntreprise } from "../actions";
+import { useFormulaire } from "@/components/pme/useFormulaire";
 import { supabase } from "@/lib/supabase";
 import type { Entreprise } from "@/lib/pme/session";
 import Message from "@/components/pme/Message";
@@ -39,7 +40,7 @@ export default function FormulaireEntreprise({
   entreprise: Entreprise;
   userId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatFormulaire, FormData>(enregistrerEntreprise, {});
+  const { etat, enCours, proprietes } = useFormulaire(enregistrerEntreprise);
   const [logoUrl, setLogoUrl] = useState(entreprise.logo_url ?? "");
   const [envoiLogo, setEnvoiLogo] = useState(false);
   const [erreurLogo, setErreurLogo] = useState("");
@@ -78,7 +79,7 @@ export default function FormulaireEntreprise({
   }
 
   return (
-    <form action={action} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+    <form {...proprietes} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
       <div>
         <label htmlFor="nom" className={etiquette}>
           Nom de l&apos;entreprise <span className="text-red-600">*</span>
