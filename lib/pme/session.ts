@@ -86,9 +86,3 @@ export type Tache = {
   echeance: string | null;
   statut: StatutTache;
 };
-
-export const LIBELLES_STATUT: Record<StatutTache, string> = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  termine: "Terminé",
-};

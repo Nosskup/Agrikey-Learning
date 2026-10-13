@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { LIBELLES_STATUT, type Tache } from "@/lib/pme/session";
+import type { Tache } from "@/lib/pme/session";
+import { LIBELLES_STATUT } from "@/lib/pme/libelles";
 import { dateCourte } from "@/lib/pme/format";
 import CaseTache from "./CaseTache";
 

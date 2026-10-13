@@ -1,7 +1,8 @@
 "use client";
 
 import type { EtatFormulaire } from "../actions";
-import { LIBELLES_STATUT, type Projet, type StatutTache, type Tache } from "@/lib/pme/session";
+import type { Projet, StatutTache, Tache } from "@/lib/pme/session";
+import { LIBELLES_STATUT } from "@/lib/pme/libelles";
 import Message from "@/components/pme/Message";
 import { useFormulaire } from "@/components/pme/useFormulaire";
 import { boutonPrincipal, champ, etiquette } from "@/components/pme/styles";
