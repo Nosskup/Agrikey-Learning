@@ -28,7 +28,7 @@ export default async function PmeLayout({
   } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-base text-slate-900">
+    <div className="pme min-h-screen bg-slate-50 text-base text-slate-900">
       <header className="no-print sticky top-0 z-40 bg-marine text-white">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
           <Link href="/pme" className="flex items-center gap-2 text-lg font-black">

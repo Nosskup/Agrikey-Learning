@@ -43,19 +43,21 @@ button {
     display: none !important;
   }
 }
-/* Impression AGRIKEY PME : page A4 propre, sans fond ni cadre. */
-@media print {
-  @page {
-    size: A4;
-    margin: 15mm;
-  }
+/* Impression AGRIKEY PME : page A4 propre, sans fond ni cadre.
+   Tout est limité à .pme pour ne pas toucher aux pages d'AGRIKEY Learning
+   (certificats…). La page nommée « pme » porte le format A4. */
+@page pme {
+  size: A4;
+  margin: 15mm;
+}
 
-  body,
-  body > div {
+@media print {
+  .pme {
+    page: pme;
     background: #ffffff !important;
   }
 
-  main {
+  .pme main {
     max-width: none !important;
     padding: 0 !important;
   }

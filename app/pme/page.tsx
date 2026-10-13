@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { exigerEntreprise } from "@/lib/pme/session";
+import { exigerEntreprise, utilisateurConnecte } from "@/lib/pme/session";
+import Presentation from "./Presentation";
 import { bornesDuMois, formatFCFA, nomDuMois } from "@/lib/pme/format";
 
-export const metadata = { title: "Tableau de bord" };
+export const metadata = { title: { absolute: "AGRIKEY PME — Gérez votre entreprise simplement" } };
 
 type Carte = {
   href: string;
@@ -12,6 +13,10 @@ type Carte = {
 };
 
 export default async function TableauDeBord() {
+  // Visiteur non connecté (lien de démonstration) : page de présentation.
+  const { user } = await utilisateurConnecte();
+  if (!user) return <Presentation />;
+
   const { supabase, entreprise } = await exigerEntreprise();
   const { debut, fin } = bornesDuMois();
 
