@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Couleurs AGRIKEY PME : bleu marine et vert. */
+@theme {
+  --color-marine: #0f2a44;
+  --color-marine-clair: #1d4166;
+  --color-agri: #16834b;
+  --color-agri-fonce: #0f6338;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #17221b;
@@ -33,5 +41,36 @@ button {
 @media print {
   .no-print {
     display: none !important;
+  }
+}
+/* Impression AGRIKEY PME : page A4 propre, sans fond ni cadre.
+   Tout est limité à .pme pour ne pas toucher aux pages d'AGRIKEY Learning
+   (certificats…). La page nommée « pme » porte le format A4. */
+@page pme {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  .pme {
+    page: pme;
+    background: #ffffff !important;
+  }
+
+  .pme main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .feuille-a4 {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt;
+  }
+
+  .feuille-a4 * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

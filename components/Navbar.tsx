@@ -56,6 +56,11 @@ export default function Navbar() {
     router.refresh();
   }
 
+  // AGRIKEY PME a sa propre en-tête.
+  if (pathname.startsWith("/pme")) {
+    return null;
+  }
+
   return (
     <header className="no-print sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -115,6 +120,13 @@ export default function Navbar() {
             }`}
           >
             Partenaires
+          </Link>
+
+          <Link
+            href="/pme"
+            className="rounded-full bg-[#0f2a44] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1d4166]"
+          >
+            Espace PME
           </Link>
 
           {user && (
@@ -211,6 +223,14 @@ export default function Navbar() {
               }`}
             >
               Partenaires
+            </Link>
+
+            <Link
+              href="/pme"
+              onClick={() => setMenuOuvert(false)}
+              className="rounded-lg px-3 py-3 text-sm font-semibold text-[#0f2a44] hover:bg-slate-50"
+            >
+              Espace PME (gestion d&apos;entreprise)
             </Link>
 
             {user && (

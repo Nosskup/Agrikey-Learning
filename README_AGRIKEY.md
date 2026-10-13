@@ -455,3 +455,31 @@ Présenter :
 - les 3 prochaines actions proposées.
 
 Puis attendre la validation avant une modification importante.
+
+## 22. AGRIKEY PME (section `/pme`)
+
+Outil de gestion pour les PME maliennes (cahier des charges : `SPEC.md`).
+Il réutilise l'authentification Supabase et le déploiement Vercel d'AGRIKEY Learning,
+sans toucher aux formations.
+
+Mise en place (une seule fois) :
+1. Supabase > SQL Editor : exécuter `supabase/migrations/20261014_agrikey_pme.sql`
+   (crée les tables PME, la RLS, les catégories par défaut et le bucket `logos-entreprises`).
+2. Supabase > Authentication > URL Configuration : ajouter
+   `https://<votre-domaine>/pme/auth/callback` aux « Redirect URLs »
+   (utile seulement si la confirmation par e-mail est activée).
+
+Pages :
+- `/pme/inscription`, `/pme/connexion`, `/pme/bienvenue` (nom de l'entreprise) ;
+- `/pme` : tableau de bord ;
+- `/pme/entreprise` : profil et logo ;
+- `/pme/affiches` : « Bientôt disponible » + « Me prévenir » ;
+- `/pme/caisse` : journal de caisse (ajout, liste du mois, modification, catégories,
+  export PDF via `/pme/caisse/imprimer` et CSV via `/pme/caisse/export`) ;
+- `/pme/projets` : projets, tâches, vue « À faire cette semaine », progression ;
+- `/pme/documents` : 10 modèles (devis, facture, relance, reçu, bon de commande, rendez-vous,
+  attestation de travail, demande de congé, convocation, compte rendu), aperçu A4, PDF par
+  impression du navigateur, historique. Les modèles sont des données dans `lib/pme/modeles.ts` :
+  pour en ajouter un, ajouter un objet à la liste `MODELES` (syntaxe expliquée en tête du fichier).
+
+Code : `app/pme/`, `components/pme/`, `lib/pme/`. Validation des saisies dans `app/pme/actions.ts`.
