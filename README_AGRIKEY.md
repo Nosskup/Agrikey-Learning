@@ -477,6 +477,9 @@ Pages :
 - `/pme/caisse` : journal de caisse (ajout, liste du mois, modification, catégories,
   export PDF via `/pme/caisse/imprimer` et CSV via `/pme/caisse/export`) ;
 - `/pme/projets` : projets, tâches, vue « À faire cette semaine », progression ;
-- `/pme/documents` : à construire (jour 3).
+- `/pme/documents` : 10 modèles (devis, facture, relance, reçu, bon de commande, rendez-vous,
+  attestation de travail, demande de congé, convocation, compte rendu), aperçu A4, PDF par
+  impression du navigateur, historique. Les modèles sont des données dans `lib/pme/modeles.ts` :
+  pour en ajouter un, ajouter un objet à la liste `MODELES` (syntaxe expliquée en tête du fichier).
 
 Code : `app/pme/`, `components/pme/`, `lib/pme/`. Validation des saisies dans `app/pme/actions.ts`.

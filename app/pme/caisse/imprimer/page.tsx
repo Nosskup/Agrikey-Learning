@@ -2,6 +2,7 @@ import Link from "next/link";
 import { exigerEntreprise, type Categorie, type Operation } from "@/lib/pme/session";
 import { dateNumerique, formatFCFA, lireMois } from "@/lib/pme/format";
 import BoutonImprimer from "@/components/pme/BoutonImprimer";
+import EnTeteEntreprise from "@/components/pme/EnTeteEntreprise";
 import { boutonSecondaire } from "@/components/pme/styles";
 
 export const metadata = { title: "Journal de caisse" };
@@ -30,9 +31,6 @@ export default async function ImprimerCaissePage({
   const liste = operations ?? [];
   const totalRecu = liste.filter((o) => o.type === "recu").reduce((t, o) => t + o.montant, 0);
   const totalDepense = liste.filter((o) => o.type === "depense").reduce((t, o) => t + o.montant, 0);
-  const coordonnees = [entreprise.adresse, entreprise.ville, entreprise.telephone, entreprise.email]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <div className="space-y-6">
@@ -47,21 +45,7 @@ export default async function ImprimerCaissePage({
       </div>
 
       <article className="feuille-a4 rounded-2xl border border-slate-200 bg-white p-6 text-slate-900">
-        <header
-          className="flex items-center gap-4 border-b-4 pb-4"
-          style={{ borderColor: entreprise.couleur }}
-        >
-          {entreprise.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={entreprise.logo_url} alt="" className="h-16 w-16 object-contain" />
-          )}
-          <div>
-            <p className="text-xl font-black" style={{ color: entreprise.couleur }}>
-              {entreprise.nom}
-            </p>
-            {coordonnees && <p className="text-base text-slate-600">{coordonnees}</p>}
-          </div>
-        </header>
+        <EnTeteEntreprise entreprise={entreprise} />
 
         <h1 className="mt-6 text-2xl font-black">
           Journal de caisse — <span className="capitalize">{mois.libelle}</span>
