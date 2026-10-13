@@ -111,6 +111,31 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* AGRIKEY PME */}
+      <section className="bg-[#0f2a44] px-6 py-10 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex rounded-full bg-green-600 px-3 py-1 text-xs font-black uppercase tracking-widest text-white">
+              Nouveau
+            </span>
+            <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">
+              AGRIKEY PME : gérez votre entreprise depuis votre téléphone
+            </h2>
+            <p className="mt-2 text-base leading-7 text-slate-300">
+              Caisse, projets, devis, factures et reçus en PDF avec votre logo.
+              Simple, gratuit et en français.
+            </p>
+          </div>
+
+          <Link
+            href="/pme"
+            className="shrink-0 rounded-xl bg-green-600 px-6 py-4 text-center text-base font-bold text-white shadow-lg transition hover:bg-green-700"
+          >
+            Accéder à AGRIKEY PME →
+          </Link>
+        </div>
+      </section>
+
       {/* POURQUOI */}
       <section className="w-full bg-white py-16">
         <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">

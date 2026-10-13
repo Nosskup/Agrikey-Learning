@@ -122,6 +122,13 @@ export default function Navbar() {
             Partenaires
           </Link>
 
+          <Link
+            href="/pme"
+            className="rounded-full bg-[#0f2a44] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1d4166]"
+          >
+            Espace PME
+          </Link>
+
           {user && (
             <Link
               href="/mon-espace"
@@ -216,6 +223,14 @@ export default function Navbar() {
               }`}
             >
               Partenaires
+            </Link>
+
+            <Link
+              href="/pme"
+              onClick={() => setMenuOuvert(false)}
+              className="rounded-lg px-3 py-3 text-sm font-semibold text-[#0f2a44] hover:bg-slate-50"
+            >
+              Espace PME (gestion d&apos;entreprise)
             </Link>
 
             {user && (
