@@ -12,4 +12,4 @@ export const EDITEUR = {
 };
 
 /** Date de la version en vigueur des conditions et de la politique. */
-export const VERSION_CONDITIONS = "15 octobre 2026";
+export const VERSION_CONDITIONS = "14 octobre 2026";
