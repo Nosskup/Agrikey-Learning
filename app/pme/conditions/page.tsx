@@ -65,7 +65,7 @@ export default function ConditionsPage() {
         {
           titre: "Partenaires",
           paragraphes: [
-            "Si vous vous inscrivez avec un code partenaire (par exemple celui d'une association), ce partenaire peut recevoir le nombre d'inscrits et d'utilisateurs actifs venus de lui. Il ne voit jamais vos données.",
+            "Pour suivre les partenariats, l'équipe AGRIKEY voit le nom, la ville et l'activité de votre entreprise, sa date d'inscription et si elle utilise l'outil. Si vous vous inscrivez avec un code partenaire (par exemple celui d'une association), ce partenaire peut recevoir ces mêmes informations pour les entreprises inscrites avec son code. Personne d'autre que vous ne voit votre caisse, vos projets ni le contenu de vos documents.",
           ],
         },
         {
