@@ -48,7 +48,25 @@ export default async function PmeLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 pt-6 pb-28">{children}</main>
+      <main className="mx-auto max-w-2xl px-4 pt-6 pb-8">{children}</main>
+
+      <footer className="no-print mx-auto max-w-2xl px-4 pb-28 text-center text-base text-slate-500">
+        {user && (
+          <>
+            <Link href="/pme/compte" className="inline-block min-h-12 content-center px-2 underline">
+              Mon compte
+            </Link>
+            {" · "}
+          </>
+        )}
+        <Link href="/pme/conditions" className="inline-block min-h-12 content-center px-2 underline">
+          Conditions
+        </Link>
+        {" · "}
+        <Link href="/pme/confidentialite" className="inline-block min-h-12 content-center px-2 underline">
+          Confidentialité
+        </Link>
+      </footer>
 
       {user && <BoutonAjouter />}
     </div>

@@ -62,7 +62,7 @@ export default function ConnexionPme() {
           </Link>
         </p>
         <p>
-          <Link href="/mot-de-passe-oublie" className="font-semibold text-marine underline">
+          <Link href="/pme/mot-de-passe-oublie" className="font-semibold text-marine underline">
             Mot de passe oublié ?
           </Link>
         </p>

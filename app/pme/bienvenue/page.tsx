@@ -30,6 +30,9 @@ export default async function BienvenuePage() {
       ? user.user_metadata.nom_entreprise
       : "";
 
+  const codePropose =
+    typeof user.user_metadata?.code_partenaire === "string" ? user.user_metadata.code_partenaire : "";
+
   return (
     <div className="space-y-6">
       <div>
@@ -38,7 +41,7 @@ export default async function BienvenuePage() {
           Une seule question pour commencer : comment s&apos;appelle votre entreprise ?
         </p>
       </div>
-      <FormulaireBienvenue nomPropose={nomPropose} />
+      <FormulaireBienvenue nomPropose={nomPropose} codePropose={codePropose} />
     </div>
   );
 }

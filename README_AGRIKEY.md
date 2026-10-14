@@ -483,3 +483,17 @@ Pages :
   pour en ajouter un, ajouter un objet à la liste `MODELES` (syntaxe expliquée en tête du fichier).
 
 Code : `app/pme/`, `components/pme/`, `lib/pme/`. Validation des saisies dans `app/pme/actions.ts`.
+
+Mise à disposition de partenaires (version du 15 octobre 2026) :
+1. Supabase > SQL Editor : exécuter `supabase/migrations/20261015_pme_partenaires_et_donnees.sql`
+   (code partenaire, date d'acceptation des conditions, statistiques admin, accès aux logos).
+2. Supabase > Authentication > URL Configuration : ajouter
+   `https://agrikey-learning.vercel.app/pme/auth/callback` aux « Redirect URLs » (mot de passe oublié).
+3. Compléter les informations de l'éditeur dans `lib/pme/editeur.ts` (forme juridique, RCCM, adresse, contact).
+
+Pages ajoutées :
+- `/pme/conditions`, `/pme/confidentialite` : conditions d'utilisation et politique de confidentialité ;
+- `/pme/inscription?code=LIGUE` : inscription avec code partenaire et acceptation des conditions ;
+- `/pme/mot-de-passe-oublie`, `/pme/nouveau-mot-de-passe` : réinitialisation du mot de passe ;
+- `/pme/compte` : télécharger ses données (JSON), supprimer ses données PME ;
+- `/pme/admin` : nombre d'inscrits et d'actifs par code partenaire (rôle admin uniquement).
