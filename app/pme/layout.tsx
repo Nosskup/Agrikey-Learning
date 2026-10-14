@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { estAdmin } from "@/lib/pme/session";
 import { deconnecter } from "./actions";
 import BoutonAjouter from "@/components/pme/BoutonAjouter";
 
@@ -26,6 +27,7 @@ export default async function PmeLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const admin = user ? await estAdmin(supabase, user.id) : false;
 
   return (
     <div className="pme min-h-screen bg-slate-50 text-base text-slate-900">
@@ -57,6 +59,14 @@ export default async function PmeLayout({
               Mon compte
             </Link>
             {" · "}
+            {admin && (
+              <>
+                <Link href="/pme/admin" className="inline-block min-h-12 content-center px-2 font-semibold text-agri underline">
+                  Statistiques partenaires
+                </Link>
+                {" · "}
+              </>
+            )}
           </>
         )}
         <Link href="/pme/conditions" className="inline-block min-h-12 content-center px-2 underline">

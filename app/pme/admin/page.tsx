@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { utilisateurConnecte } from "@/lib/pme/session";
+import Link from "next/link";
+import { estAdmin, utilisateurConnecte } from "@/lib/pme/session";
+import { boutonSecondaire } from "@/components/pme/styles";
 
 export const metadata = { title: "Statistiques partenaires" };
 
@@ -12,8 +14,21 @@ export default async function AdminPmePage() {
   const { supabase, user } = await utilisateurConnecte();
   if (!user) redirect("/pme/connexion");
 
-  const { data: profil } = await supabase.from("profiles").select("role").eq("user_id", user.id).maybeSingle();
-  if (profil?.role !== "admin") redirect("/pme");
+  if (!(await estAdmin(supabase, user.id))) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-black text-marine">Statistiques partenaires</h1>
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-base text-amber-900">
+          Cette page est réservée aux comptes administrateurs. Vous êtes connecté avec <strong>{user.email}</strong>, qui
+          n&apos;a pas le rôle « admin ». Déconnectez-vous et reconnectez-vous avec le compte administrateur d&apos;AGRIKEY
+          Learning, ou donnez ce rôle à ce compte dans Supabase (table profiles).
+        </p>
+        <Link href="/pme" className={boutonSecondaire}>
+          ← Retour au tableau de bord
+        </Link>
+      </div>
+    );
+  }
 
   const { data, error } = await supabase.rpc("pme_statistiques_partenaires");
   const lignes = (data ?? []) as Ligne[];
