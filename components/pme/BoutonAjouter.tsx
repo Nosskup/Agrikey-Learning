@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const PAGES_SANS_BOUTON = ["/pme/connexion", "/pme/inscription", "/pme/bienvenue", "/pme/ajouter"];
+const PAGES_SANS_BOUTON = [
+  "/pme/connexion", "/pme/inscription", "/pme/bienvenue", "/pme/ajouter",
+  "/pme/mot-de-passe-oublie", "/pme/nouveau-mot-de-passe", "/pme/compte",
+];
 
 /** Raccourci permanent « + Ajouter » (opération de caisse ou tâche). */
 export default function BoutonAjouter() {

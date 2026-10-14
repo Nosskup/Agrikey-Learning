@@ -34,3 +34,18 @@ export function dateValide(date: string): boolean {
 export function uuidValide(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 }
+
+/**
+ * Code partenaire facultatif (ex. « ligue » -> « LIGUE »).
+ * Renvoie "" si vide, null si le format est invalide.
+ */
+export function lireCodePartenaire(formData: FormData, nom = "code_partenaire"): string | null {
+  const code = lireTexte(formData, nom).toUpperCase().replace(/\s+/g, "");
+  if (!code) return "";
+  return /^[A-Z0-9-]{2,20}$/.test(code) ? code : null;
+}
+
+/** Vrai si la case d'acceptation des conditions est cochée. */
+export function conditionsAcceptees(formData: FormData): boolean {
+  return formData.get("conditions") === "oui";
+}

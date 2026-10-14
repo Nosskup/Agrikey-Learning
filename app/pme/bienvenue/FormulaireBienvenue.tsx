@@ -3,9 +3,10 @@
 import { creerEntreprise } from "../actions";
 import { useFormulaire } from "@/components/pme/useFormulaire";
 import Message from "@/components/pme/Message";
+import ChampsConsentement from "@/components/pme/ChampsConsentement";
 import { boutonPrincipal, champ, etiquette } from "@/components/pme/styles";
 
-export default function FormulaireBienvenue({ nomPropose }: { nomPropose: string }) {
+export default function FormulaireBienvenue({ nomPropose, codePropose }: { nomPropose: string; codePropose: string }) {
   const { etat, enCours, proprietes } = useFormulaire(creerEntreprise);
 
   return (
@@ -25,6 +26,8 @@ export default function FormulaireBienvenue({ nomPropose }: { nomPropose: string
           className={champ}
         />
       </div>
+
+      <ChampsConsentement codeInitial={codePropose} />
 
       <Message etat={etat} />
 

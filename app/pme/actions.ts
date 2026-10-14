@@ -6,10 +6,15 @@ import { refresh } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { utilisateurConnecte } from "@/lib/pme/session";
 import {
+  conditionsAcceptees,
   couleurValide,
   emailValide,
+  lireCodePartenaire,
   lireTexte,
 } from "@/lib/pme/validation";
+
+const MESSAGE_CODE_INVALIDE = "Ce code partenaire n'est pas valide : lettres et chiffres uniquement, par exemple LIGUE.";
+const MESSAGE_CONDITIONS = "Cochez la case pour accepter les conditions d'utilisation.";
 
 export type EtatFormulaire = {
   erreur?: string;
@@ -37,6 +42,14 @@ export async function inscrire(
   if (motDePasse.length < 6) {
     return { erreur: "Choisissez un mot de passe d'au moins 6 caractères." };
   }
+  const codePartenaire = lireCodePartenaire(formData);
+  if (codePartenaire === null) {
+    return { erreur: MESSAGE_CODE_INVALIDE };
+  }
+  if (!conditionsAcceptees(formData)) {
+    return { erreur: MESSAGE_CONDITIONS };
+  }
+  const accepteLe = new Date().toISOString();
 
   const supabase = await createSupabaseServerClient();
   const origine =
@@ -46,7 +59,7 @@ export async function inscrire(
     email,
     password: motDePasse,
     options: {
-      data: { nom_entreprise: nomEntreprise },
+      data: { nom_entreprise: nomEntreprise, code_partenaire: codePartenaire, conditions_acceptees_le: accepteLe },
       emailRedirectTo: `${origine}/pme/auth/callback`,
     },
   });
@@ -65,9 +78,12 @@ export async function inscrire(
     };
   }
 
-  await supabase
-    .from("entreprises")
-    .insert({ user_id: data.session.user.id, nom: nomEntreprise });
+  await supabase.from("entreprises").insert({
+    user_id: data.session.user.id,
+    nom: nomEntreprise,
+    code_partenaire: codePartenaire || null,
+    conditions_acceptees_le: accepteLe,
+  });
 
   redirect("/pme");
 }
@@ -122,10 +138,20 @@ export async function creerEntreprise(
   if (!nom || nom.length > 120) {
     return { erreur: "Écrivez le nom de votre entreprise." };
   }
+  const codePartenaire = lireCodePartenaire(formData);
+  if (codePartenaire === null) {
+    return { erreur: MESSAGE_CODE_INVALIDE };
+  }
+  if (!conditionsAcceptees(formData)) {
+    return { erreur: MESSAGE_CONDITIONS };
+  }
 
-  const { error } = await supabase
-    .from("entreprises")
-    .insert({ user_id: user.id, nom });
+  const { error } = await supabase.from("entreprises").insert({
+    user_id: user.id,
+    nom,
+    code_partenaire: codePartenaire || null,
+    conditions_acceptees_le: new Date().toISOString(),
+  });
 
   // 23505 : l'entreprise existe déjà, on continue simplement.
   if (error && error.code !== "23505") {
@@ -218,4 +244,62 @@ export async function rejoindreListeAttente(): Promise<EtatFormulaire> {
   }
 
   return { succes: `C'est noté ! Nous vous écrirons à ${user.email}.` };
+}
+
+// ---------------------------------------------------------------------
+// Mot de passe oublié
+// ---------------------------------------------------------------------
+
+export async function demanderReinitialisation(
+  _etat: EtatFormulaire,
+  formData: FormData
+): Promise<EtatFormulaire> {
+  const email = lireTexte(formData, "email").toLowerCase();
+  if (!emailValide(email)) {
+    return { erreur: "Écrivez une adresse e-mail valide, par exemple nom@gmail.com." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const origine =
+    (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origine}/pme/auth/callback?suite=/pme/nouveau-mot-de-passe`,
+  });
+
+  if (error?.status === 429) {
+    return { erreur: "Trop de demandes en peu de temps. Réessayez dans une heure." };
+  }
+
+  // Même message que le compte existe ou non, pour ne rien révéler.
+  return {
+    succes: `Si un compte existe pour ${email}, un e-mail vient d'être envoyé. Ouvrez-le et cliquez sur le lien (pensez à regarder dans les spams).`,
+  };
+}
+
+export async function changerMotDePasse(
+  _etat: EtatFormulaire,
+  formData: FormData
+): Promise<EtatFormulaire> {
+  const { supabase, user } = await utilisateurConnecte();
+  if (!user) {
+    redirect("/pme/mot-de-passe-oublie");
+  }
+
+  const motDePasse = String(formData.get("mot_de_passe") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+
+  if (motDePasse.length < 6) {
+    return { erreur: "Choisissez un mot de passe d'au moins 6 caractères." };
+  }
+  if (motDePasse !== confirmation) {
+    return { erreur: "Les deux mots de passe ne sont pas identiques. Retapez-les." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: motDePasse });
+  if (error) {
+    return { erreur: "Le mot de passe n'a pas pu être changé. Demandez un nouveau lien et réessayez." };
+  }
+
+  redirect("/pme");
 }
