@@ -4,11 +4,11 @@
 
 export const EDITEUR = {
   nom: "AGRIKEY",
-  formeJuridique: "À compléter : forme juridique",
-  rccm: "À compléter : numéro RCCM",
-  adresse: "À compléter : adresse, Bamako, Mali",
-  email: "À compléter : e-mail de contact",
-  telephone: "À compléter : téléphone",
+  formeJuridique: "entreprise individuelle",
+  rccm: "MA.BKO.2026.A.782",
+  adresse: "Bamako, Mali",
+  email: "agrikey.ml@gmail.com",
+  telephone: "+223 74 72 62 82",
 };
 
 /** Date de la version en vigueur des conditions et de la politique. */
