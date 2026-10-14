@@ -46,11 +46,11 @@ export default async function ComptePage() {
       <section className="space-y-3">
         <h2 className="text-xl font-black text-marine">Mes données</h2>
         <p className="text-base text-slate-600">
-          Vos données vous appartiennent. Téléchargez-les à tout moment : entreprise, caisse, projets et documents.
+          Vos données vous appartiennent. Téléchargez-les à tout moment dans un document PDF : entreprise, caisse, projets et documents.
         </p>
-        <a href="/pme/compte/export" className={boutonSecondaire}>
-          ⬇️ Télécharger mes données
-        </a>
+        <Link href="/pme/compte/mes-donnees" className={boutonSecondaire}>
+          📄 Télécharger mes données (PDF)
+        </Link>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-red-200 bg-red-50 p-5">

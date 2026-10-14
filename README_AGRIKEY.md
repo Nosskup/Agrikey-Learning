@@ -495,5 +495,5 @@ Pages ajoutées :
 - `/pme/conditions`, `/pme/confidentialite` : conditions d'utilisation et politique de confidentialité ;
 - `/pme/inscription?code=LIGUE` : inscription avec code partenaire et acceptation des conditions ;
 - `/pme/mot-de-passe-oublie`, `/pme/nouveau-mot-de-passe` : réinitialisation du mot de passe ;
-- `/pme/compte` : télécharger ses données (JSON), supprimer ses données PME ;
+- `/pme/compte` : télécharger ses données en PDF (`/pme/compte/mes-donnees`), supprimer ses données PME ;
 - `/pme/admin` : nombre d'inscrits et d'actifs par code partenaire (rôle admin uniquement).
