@@ -86,3 +86,11 @@ export type Tache = {
   echeance: string | null;
   statut: StatutTache;
 };
+
+type ClientSupabase = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+/** Vrai si le compte a le rôle « admin » dans la table profiles d'AGRIKEY Learning. */
+export async function estAdmin(supabase: ClientSupabase, userId: string): Promise<boolean> {
+  const { data } = await supabase.from("profiles").select("role").eq("user_id", userId).maybeSingle();
+  return data?.role === "admin";
+}
