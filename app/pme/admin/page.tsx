@@ -104,6 +104,7 @@ export default async function AdminPmePage({
         {erreurListe && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-base font-semibold text-red-700">
             La liste n&apos;a pas pu être chargée. Vérifiez que le script SQL 20261016 a été exécuté dans Supabase.
+            <span className="mt-2 block font-mono text-sm font-normal break-all">Détail : {erreurListe.message}</span>
           </p>
         )}
 
