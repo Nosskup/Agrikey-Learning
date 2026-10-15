@@ -13,7 +13,18 @@ import {
   lireTexte,
 } from "@/lib/pme/validation";
 
-const MESSAGE_CODE_INVALIDE = "Ce code partenaire n'est pas valide : lettres et chiffres uniquement, par exemple LIGUE.";
+const MESSAGE_CODE_INVALIDE =
+  "Ce code d'invitation n'est pas valide. Demandez-le à votre association ou à AGRIKEY.";
+
+/** Vérifie dans la base que le code d'invitation existe, est actif et n'est pas épuisé. */
+async function codeInvitationValide(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  code: string | null
+): Promise<boolean> {
+  if (!code) return false;
+  const { data, error } = await supabase.rpc("pme_code_valide", { p_code: code });
+  return !error && data === true;
+}
 const MESSAGE_CONDITIONS = "Cochez la case pour accepter les conditions d'utilisation.";
 
 export type EtatFormulaire = {
@@ -43,15 +54,16 @@ export async function inscrire(
     return { erreur: "Choisissez un mot de passe d'au moins 6 caractères." };
   }
   const codePartenaire = lireCodePartenaire(formData);
-  if (codePartenaire === null) {
-    return { erreur: MESSAGE_CODE_INVALIDE };
-  }
   if (!conditionsAcceptees(formData)) {
     return { erreur: MESSAGE_CONDITIONS };
   }
   const accepteLe = new Date().toISOString();
 
   const supabase = await createSupabaseServerClient();
+  // Inscription sur invitation : pas de compte sans code valide.
+  if (!(await codeInvitationValide(supabase, codePartenaire))) {
+    return { erreur: MESSAGE_CODE_INVALIDE };
+  }
   const origine =
     (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
@@ -78,10 +90,11 @@ export async function inscrire(
     };
   }
 
+  // La base vérifie à nouveau le code et met l'entreprise « en attente » de validation.
   await supabase.from("entreprises").insert({
     user_id: data.session.user.id,
     nom: nomEntreprise,
-    code_partenaire: codePartenaire || null,
+    code_partenaire: codePartenaire,
     conditions_acceptees_le: accepteLe,
   });
 
@@ -139,20 +152,24 @@ export async function creerEntreprise(
     return { erreur: "Écrivez le nom de votre entreprise." };
   }
   const codePartenaire = lireCodePartenaire(formData);
-  if (codePartenaire === null) {
-    return { erreur: MESSAGE_CODE_INVALIDE };
-  }
   if (!conditionsAcceptees(formData)) {
     return { erreur: MESSAGE_CONDITIONS };
+  }
+  if (!(await codeInvitationValide(supabase, codePartenaire))) {
+    return { erreur: MESSAGE_CODE_INVALIDE };
   }
 
   const { error } = await supabase.from("entreprises").insert({
     user_id: user.id,
     nom,
-    code_partenaire: codePartenaire || null,
+    code_partenaire: codePartenaire,
     conditions_acceptees_le: new Date().toISOString(),
   });
 
+  // P0001 : code refusé par la base (désactivé ou épuisé entre-temps).
+  if (error?.code === "P0001") {
+    return { erreur: MESSAGE_CODE_INVALIDE };
+  }
   // 23505 : l'entreprise existe déjà, on continue simplement.
   if (error && error.code !== "23505") {
     return { erreur: "L'enregistrement a échoué. Réessayez dans un instant." };

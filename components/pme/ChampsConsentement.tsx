@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { champ, etiquette } from "./styles";
 
-/** Code partenaire facultatif + case obligatoire d'acceptation des conditions. */
+/** Code d'invitation obligatoire + case obligatoire d'acceptation des conditions. */
 export default function ChampsConsentement({ codeInitial = "" }: { codeInitial?: string }) {
   return (
     <>
       <div>
         <label htmlFor="code_partenaire" className={etiquette}>
-          Code partenaire (facultatif)
+          Code d&apos;invitation
         </label>
         <input
           id="code_partenaire"
           name="code_partenaire"
+          required
           maxLength={20}
           defaultValue={codeInitial}
           autoCapitalize="characters"
@@ -19,7 +20,9 @@ export default function ChampsConsentement({ codeInitial = "" }: { codeInitial?:
           placeholder="Ex. : LIGUE"
           className={`${champ} uppercase`}
         />
-        <p className="mt-1 text-base text-slate-500">Donné par votre association ou votre organisation, si vous en avez un.</p>
+        <p className="mt-1 text-base text-slate-500">
+          AGRIKEY PME est réservé aux membres des organisations partenaires. Le code vous est donné par votre association.
+        </p>
       </div>
 
       <label className="flex min-h-12 cursor-pointer items-start gap-3 text-base text-slate-700">

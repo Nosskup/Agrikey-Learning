@@ -13,6 +13,7 @@ export type Entreprise = {
   rccm: string | null;
   logo_url: string | null;
   couleur: string;
+  statut: "en_attente" | "valide" | "refuse";
 };
 
 /**
@@ -38,6 +39,12 @@ export async function exigerEntreprise() {
 
   if (!entreprise) {
     redirect("/pme/bienvenue");
+  }
+
+  // Inscription sur validation : rien n'est accessible avant l'accord d'un administrateur.
+  // (Statut absent = base pas encore mise à jour : on laisse passer pour ne bloquer personne.)
+  if (entreprise.statut && entreprise.statut !== "valide") {
+    redirect("/pme/en-attente");
   }
 
   return { supabase, user, entreprise };

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const PAGES_SANS_BOUTON = [
   "/pme/connexion", "/pme/inscription", "/pme/bienvenue", "/pme/ajouter",
-  "/pme/mot-de-passe-oublie", "/pme/nouveau-mot-de-passe", "/pme/compte",
+  "/pme/mot-de-passe-oublie", "/pme/nouveau-mot-de-passe", "/pme/compte", "/pme/en-attente",
 ];
 
 /** Raccourci permanent « + Ajouter » (opération de caisse ou tâche). */
