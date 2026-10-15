@@ -30,6 +30,7 @@ export default function ConditionsPage() {
         {
           titre: "Votre compte",
           paragraphes: [
+            "AGRIKEY PME est réservé aux membres des organisations partenaires : l'inscription demande un code d'invitation, puis la validation de votre compte par l'équipe AGRIKEY. Une inscription peut être refusée ou suspendue si elle ne correspond pas à un membre d'une organisation partenaire.",
             "Vous donnez des informations exactes et gardez votre mot de passe secret. Vous êtes responsable de ce qui est fait avec votre compte. Si vous pensez qu'une autre personne l'utilise, changez votre mot de passe et prévenez-nous.",
           ],
         },
@@ -65,7 +66,7 @@ export default function ConditionsPage() {
         {
           titre: "Partenaires",
           paragraphes: [
-            "Pour suivre les partenariats, l'équipe AGRIKEY voit le nom, la ville et l'activité de votre entreprise, sa date d'inscription et si elle utilise l'outil. Si vous vous inscrivez avec un code partenaire (par exemple celui d'une association), ce partenaire peut recevoir ces mêmes informations pour les entreprises inscrites avec son code. Personne d'autre que vous ne voit votre caisse, vos projets ni le contenu de vos documents.",
+            "Pour suivre les partenariats, l'équipe AGRIKEY voit le nom, la ville et l'activité de votre entreprise, l'e-mail de votre compte, sa date d'inscription et si elle utilise l'outil. Si vous vous inscrivez avec un code partenaire (par exemple celui d'une association), ce partenaire peut recevoir ces mêmes informations pour les entreprises inscrites avec son code. Personne d'autre que vous ne voit votre caisse, vos projets ni le contenu de vos documents.",
           ],
         },
         {

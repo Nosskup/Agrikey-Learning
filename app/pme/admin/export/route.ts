@@ -4,6 +4,8 @@ import { estAdmin } from "@/lib/pme/session";
 
 type EntrepriseInscrite = {
   nom: string;
+  email: string | null;
+  statut: string;
   ville: string | null;
   activite: string | null;
   code_partenaire: string | null;
@@ -33,13 +35,15 @@ export async function GET(request: NextRequest) {
 
   const cellule = (valeur: string) => `"${valeur.replace(/"/g, '""')}"`;
   const lignes = [
-    ["Entreprise", "Ville", "Activité", "Code partenaire", "Inscrite le", "Active (30 jours)", "Documents"].map(cellule).join(";"),
+    ["Entreprise", "E-mail", "Ville", "Activité", "Code partenaire", "Statut", "Inscrite le", "Active (30 jours)", "Documents"].map(cellule).join(";"),
     ...liste.map((e) =>
       [
         cellule(e.nom),
+        cellule(e.email ?? ""),
         cellule(e.ville ?? ""),
         cellule(e.activite ?? ""),
         cellule(e.code_partenaire ?? ""),
+        cellule({ en_attente: "En attente", valide: "Validée", refuse: "Refusée" }[e.statut] ?? e.statut),
         cellule(new Date(e.inscrite_le).toLocaleDateString("fr-FR")),
         cellule(e.active_30_jours ? "Oui" : "Non"),
         String(e.documents),

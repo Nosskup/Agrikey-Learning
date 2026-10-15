@@ -62,7 +62,7 @@ export default async function PmeLayout({
             {admin && (
               <>
                 <Link href="/pme/admin" className="inline-block min-h-12 content-center px-2 font-semibold text-agri underline">
-                  Statistiques partenaires
+                  Administration
                 </Link>
                 {" · "}
               </>

@@ -1,24 +1,39 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { estAdmin, utilisateurConnecte } from "@/lib/pme/session";
+import BoutonSupprimer from "@/components/pme/BoutonSupprimer";
 import { boutonSecondaire } from "@/components/pme/styles";
+import { basculerCode, changerStatut } from "./actions";
+import FormulaireCode from "./FormulaireCode";
 
-export const metadata = { title: "Statistiques partenaires" };
+export const metadata = { title: "Administration AGRIKEY PME" };
 
 type Ligne = { code_partenaire: string; entreprises: number; actives_30_jours: number; documents: number };
 type EntrepriseInscrite = {
+  entreprise_id: string;
   nom: string;
+  email: string | null;
   ville: string | null;
   activite: string | null;
   code_partenaire: string | null;
+  statut: "en_attente" | "valide" | "refuse";
   inscrite_le: string;
   active_30_jours: boolean;
   documents: number;
 };
+type CodeInvitation = { code: string; libelle: string; actif: boolean; max_inscriptions: number | null };
 
-// Réservé aux administrateurs (rôle « admin » d'AGRIKEY Learning) : nombres par code partenaire,
-// sans aucune donnée d'entreprise.
+const STATUTS = {
+  en_attente: { libelle: "En attente", classe: "bg-amber-100 text-amber-900" },
+  valide: { libelle: "Validée", classe: "bg-green-100 text-agri-fonce" },
+  refuse: { libelle: "Refusée", classe: "bg-red-100 text-red-800" },
+} as const;
+
+const puce = "min-h-12 content-center rounded-full border px-4 text-base font-semibold";
+
+// Réservé aux administrateurs (rôle « admin » d'AGRIKEY Learning) : validation des inscriptions,
+// codes d'invitation, statistiques et liste des entreprises (jamais leur caisse, projets ni documents).
 export default async function AdminPmePage({
   searchParams,
 }: {
@@ -26,13 +41,14 @@ export default async function AdminPmePage({
 }) {
   const { code } = await searchParams;
   const filtre = typeof code === "string" && /^[A-Z0-9-]{2,20}$|^AUCUN$/.test(code) ? code : "";
+
   const { supabase, user } = await utilisateurConnecte();
   if (!user) redirect("/pme/connexion");
 
   if (!(await estAdmin(supabase, user.id))) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-black text-marine">Statistiques partenaires</h1>
+        <h1 className="text-3xl font-black text-marine">Administration</h1>
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-base text-amber-900">
           Cette page est réservée aux comptes administrateurs. Vous êtes connecté avec <strong>{user.email}</strong>, qui
           n&apos;a pas le rôle « admin ». Déconnectez-vous et reconnectez-vous avec le compte administrateur d&apos;AGRIKEY
@@ -45,81 +61,123 @@ export default async function AdminPmePage({
     );
   }
 
-  const [{ data, error }, { data: liste, error: erreurListe }] = await Promise.all([
-    supabase.rpc("pme_statistiques_partenaires"),
-    supabase.rpc("pme_liste_entreprises"),
-  ]);
-  const lignes = (data ?? []) as Ligne[];
-  const entreprises = ((liste ?? []) as EntrepriseInscrite[]).filter(
-    (e) => !filtre || (e.code_partenaire ?? "AUCUN") === filtre
-  );
-  const total = lignes.reduce((t, l) => t + Number(l.entreprises), 0);
+  const [{ data, error }, { data: liste, error: erreurListe }, { data: codesData, error: erreurCodes }] =
+    await Promise.all([
+      supabase.rpc("pme_statistiques_partenaires"),
+      supabase.rpc("pme_liste_entreprises"),
+      supabase.from("codes_invitation").select("code, libelle, actif, max_inscriptions").order("created_at"),
+    ]);
 
+  const lignes = (data ?? []) as Ligne[];
+  const toutes = (liste ?? []) as EntrepriseInscrite[];
+  const codes = (codesData ?? []) as CodeInvitation[];
+  const enAttente = toutes.filter((e) => e.statut === "en_attente");
+  const entreprises = toutes.filter((e) => !filtre || (e.code_partenaire ?? "AUCUN") === filtre);
+  const utilisations = (c: string) => toutes.filter((e) => e.code_partenaire === c).length;
+  const total = lignes.reduce((t, l) => t + Number(l.entreprises), 0);
   const hote = (await headers()).get("host") ?? "agrikey-learning.vercel.app";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-black text-marine">Statistiques partenaires</h1>
-        <p className="mt-2 text-base text-slate-600">
-          {total} entreprise{total > 1 ? "s" : ""} inscrite{total > 1 ? "s" : ""} au total. « Actives » = au moins une
-          opération de caisse ces 30 derniers jours.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <h1 className="text-3xl font-black text-marine">Administration</h1>
 
-      {error && (
+      {(error || erreurListe || erreurCodes) && (
         <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-base font-semibold text-red-700">
-          Les statistiques n&apos;ont pas pu être chargées. Vérifiez que le script SQL 20261015 a été exécuté dans Supabase.
+          Certaines informations n&apos;ont pas pu être chargées. Vérifiez que le script SQL 20261017 a été exécuté dans
+          Supabase.
+          <span className="mt-2 block font-mono text-sm font-normal break-all">
+            Détail : {[error, erreurListe, erreurCodes].filter(Boolean).map((e) => e!.message).join(" · ")}
+          </span>
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <table className="w-full text-base">
-          <thead className="bg-marine text-left text-white">
-            <tr>
-              <th className="px-4 py-3">Code</th>
-              <th className="px-4 py-3 text-right">Inscrites</th>
-              <th className="px-4 py-3 text-right">Actives</th>
-              <th className="px-4 py-3 text-right">Documents</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {lignes.map((l) => (
-              <tr key={l.code_partenaire}>
-                <td className="px-4 py-3 font-semibold text-marine">
-                  {l.code_partenaire === "AUCUN" ? "Sans code" : l.code_partenaire}
-                </td>
-                <td className="px-4 py-3 text-right">{l.entreprises}</td>
-                <td className="px-4 py-3 text-right">{l.actives_30_jours}</td>
-                <td className="px-4 py-3 text-right">{l.documents}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* 1. Inscriptions à valider */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-black text-marine">Inscriptions à valider ({enAttente.length})</h2>
+        {enAttente.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-base text-slate-600">
+            Aucune inscription en attente.
+          </p>
+        ) : (
+          enAttente.map((e) => (
+            <div key={e.entreprise_id} className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-base">
+              <div>
+                <p className="text-lg font-black text-marine">{e.nom}</p>
+                <p className="text-slate-700">
+                  {e.email ?? "—"} · code {e.code_partenaire ?? "—"} · inscrite le{" "}
+                  {new Date(e.inscrite_le).toLocaleDateString("fr-FR")}
+                </p>
+                {(e.activite || e.ville) && (
+                  <p className="text-slate-600">{[e.activite, e.ville].filter(Boolean).join(" · ")}</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <form action={changerStatut.bind(null, e.entreprise_id, "valide")}>
+                  <button
+                    type="submit"
+                    className="flex min-h-12 w-full items-center justify-center rounded-xl bg-agri px-4 font-bold text-white hover:bg-agri-fonce"
+                  >
+                    ✓ Valider
+                  </button>
+                </form>
+                <BoutonSupprimer
+                  action={changerStatut.bind(null, e.entreprise_id, "refuse")}
+                  question={`Refuser l'inscription de « ${e.nom} » ?`}
+                  libelle="✕ Refuser"
+                  className="w-full"
+                />
+              </div>
+            </div>
+          ))
+        )}
+      </section>
 
+      {/* 2. Statistiques par code */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-black text-marine">Statistiques par code</h2>
+        <p className="text-base text-slate-600">
+          {total} entreprise{total > 1 ? "s" : ""} au total. « Actives » = au moins une opération de caisse ces 30
+          derniers jours.
+        </p>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <table className="w-full text-base">
+            <thead className="bg-marine text-left text-white">
+              <tr>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3 text-right">Inscrites</th>
+                <th className="px-4 py-3 text-right">Actives</th>
+                <th className="px-4 py-3 text-right">Documents</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {lignes.map((l) => (
+                <tr key={l.code_partenaire}>
+                  <td className="px-4 py-3 font-semibold text-marine">
+                    {l.code_partenaire === "AUCUN" ? "Sans code" : l.code_partenaire}
+                  </td>
+                  <td className="px-4 py-3 text-right">{l.entreprises}</td>
+                  <td className="px-4 py-3 text-right">{l.actives_30_jours}</td>
+                  <td className="px-4 py-3 text-right">{l.documents}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* 3. Liste des entreprises */}
       <section className="space-y-3">
         <h2 className="text-xl font-black text-marine">Entreprises inscrites</h2>
 
-        {erreurListe && (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-base font-semibold text-red-700">
-            La liste n&apos;a pas pu être chargée. Vérifiez que le script SQL 20261016 a été exécuté dans Supabase.
-            <span className="mt-2 block font-mono text-sm font-normal break-all">Détail : {erreurListe.message}</span>
-          </p>
-        )}
-
         <nav aria-label="Filtrer par code" className="flex flex-wrap gap-2">
-          <Link
-            href="/pme/admin"
-            className={`min-h-12 content-center rounded-full border px-4 text-base font-semibold ${!filtre ? "border-agri bg-agri text-white" : "border-slate-300 bg-white text-marine"}`}
-          >
+          <Link href="/pme/admin" className={`${puce} ${!filtre ? "border-agri bg-agri text-white" : "border-slate-300 bg-white text-marine"}`}>
             Toutes
           </Link>
           {lignes.map((l) => (
             <Link
               key={l.code_partenaire}
               href={`/pme/admin?code=${l.code_partenaire}`}
-              className={`min-h-12 content-center rounded-full border px-4 text-base font-semibold ${filtre === l.code_partenaire ? "border-agri bg-agri text-white" : "border-slate-300 bg-white text-marine"}`}
+              className={`${puce} ${filtre === l.code_partenaire ? "border-agri bg-agri text-white" : "border-slate-300 bg-white text-marine"}`}
             >
               {l.code_partenaire === "AUCUN" ? "Sans code" : l.code_partenaire}
             </Link>
@@ -131,30 +189,44 @@ export default async function AdminPmePage({
             <thead className="bg-marine text-left text-white">
               <tr>
                 <th className="px-4 py-3">Entreprise</th>
-                <th className="px-4 py-3">Ville</th>
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Inscrite le</th>
+                <th className="px-4 py-3">Statut</th>
                 <th className="px-4 py-3 text-center">Active</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {entreprises.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-slate-500">
+                  <td colSpan={6} className="px-4 py-4 text-center text-slate-500">
                     Aucune entreprise.
                   </td>
                 </tr>
               )}
-              {entreprises.map((e, i) => (
-                <tr key={`${e.nom}-${e.inscrite_le}-${i}`}>
+              {entreprises.map((e) => (
+                <tr key={e.entreprise_id}>
                   <td className="px-4 py-3">
                     <span className="block font-semibold text-marine">{e.nom}</span>
-                    {e.activite && <span className="block text-slate-500">{e.activite}</span>}
+                    <span className="block text-slate-500">
+                      {[e.email, e.activite, e.ville].filter(Boolean).join(" · ")}
+                    </span>
                   </td>
-                  <td className="px-4 py-3">{e.ville || "—"}</td>
                   <td className="px-4 py-3">{e.code_partenaire || "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{new Date(e.inscrite_le).toLocaleDateString("fr-FR")}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-3 py-1 text-sm font-bold whitespace-nowrap ${STATUTS[e.statut].classe}`}>
+                      {STATUTS[e.statut].libelle}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-center">{e.active_30_jours ? "✅" : "—"}</td>
+                  <td className="px-4 py-3">
+                    <form action={changerStatut.bind(null, e.entreprise_id, e.statut === "valide" ? "en_attente" : "valide")}>
+                      <button type="submit" className="min-h-12 text-base font-semibold text-marine underline whitespace-nowrap">
+                        {e.statut === "valide" ? "Suspendre" : "Valider"}
+                      </button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -166,10 +238,61 @@ export default async function AdminPmePage({
         </a>
       </section>
 
-      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 text-base">
-        <h2 className="text-lg font-black text-marine">Lien d&apos;inscription à partager</h2>
-        <p className="text-slate-600">Remplacez LIGUE par le code du partenaire :</p>
-        <p className="rounded-lg bg-slate-100 p-3 font-mono break-all">https://{hote}/pme/inscription?code=LIGUE</p>
+      {/* 4. Codes d'invitation */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-black text-marine">Codes d&apos;invitation</h2>
+        <p className="text-base text-slate-600">
+          Sans code actif, personne ne peut s&apos;inscrire. Un code désactivé ou qui a atteint son maximum n&apos;est plus
+          accepté ; les comptes déjà inscrits ne sont pas touchés.
+        </p>
+
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <table className="w-full text-base">
+            <thead className="bg-marine text-left text-white">
+              <tr>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3 text-right">Inscriptions</th>
+                <th className="px-4 py-3">État</th>
+                <th className="px-4 py-3">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {codes.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-4 text-center text-slate-500">
+                    Aucun code : personne ne peut s&apos;inscrire.
+                  </td>
+                </tr>
+              )}
+              {codes.map((c) => (
+                <tr key={c.code}>
+                  <td className="px-4 py-3">
+                    <span className="block font-mono font-bold text-marine">{c.code}</span>
+                    {c.libelle && <span className="block text-slate-500">{c.libelle}</span>}
+                    <span className="block font-mono text-sm break-all text-slate-500">
+                      https://{hote}/pme/inscription?code={c.code}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {utilisations(c.code)}
+                    {c.max_inscriptions ? ` / ${c.max_inscriptions}` : ""}
+                  </td>
+                  <td className="px-4 py-3">{c.actif ? "Actif" : "Désactivé"}</td>
+                  <td className="px-4 py-3">
+                    <form action={basculerCode.bind(null, c.code, !c.actif)}>
+                      <button type="submit" className="min-h-12 text-base font-semibold text-marine underline whitespace-nowrap">
+                        {c.actif ? "Désactiver" : "Activer"}
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <h3 className="text-lg font-black text-marine">Créer un code</h3>
+        <FormulaireCode />
       </section>
     </div>
   );

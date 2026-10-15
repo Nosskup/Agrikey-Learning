@@ -496,6 +496,12 @@ Pages ajoutées :
 - `/pme/inscription?code=LIGUE` : inscription avec code partenaire et acceptation des conditions ;
 - `/pme/mot-de-passe-oublie`, `/pme/nouveau-mot-de-passe` : réinitialisation du mot de passe ;
 - `/pme/compte` : télécharger ses données en PDF (`/pme/compte/mes-donnees`), supprimer ses données PME ;
-- `/pme/admin` : nombre d'inscrits et d'actifs par code partenaire, liste des entreprises (nom, ville, activité,
+- `/pme/admin` : validation des inscriptions, codes d'invitation, nombre d'inscrits et d'actifs par code, liste des entreprises (nom, ville, activité,
   code, date, active) avec filtre par code et export CSV (rôle admin uniquement ; script
   `supabase/migrations/20261016_pme_liste_entreprises.sql`).
+
+Inscription sur invitation et validation (15 octobre 2026) : exécuter
+`supabase/migrations/20261017_pme_invitation_validation.sql`. Sans code d'invitation actif
+(table `codes_invitation`, gérée depuis `/pme/admin`), personne ne peut s'inscrire ; chaque
+nouvelle entreprise reste « en attente » (`/pme/en-attente`) jusqu'à sa validation par un
+administrateur. Ces règles sont appliquées dans la base (trigger `pme_proteger_entreprise`).
