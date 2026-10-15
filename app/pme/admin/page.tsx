@@ -242,7 +242,7 @@ export default async function AdminPmePage({
       <section className="space-y-3">
         <h2 className="text-xl font-black text-marine">Codes d&apos;invitation</h2>
         <p className="text-base text-slate-600">
-          Sans code actif, personne ne peut s&apos;inscrire. Un code désactivé ou qui a atteint son maximum n&apos;est plus
+          Sans code ✅ actif, personne ne peut s&apos;inscrire. Un code désactivé ou qui a atteint son maximum n&apos;est plus
           accepté ; les comptes déjà inscrits ne sont pas touchés.
         </p>
 
@@ -277,13 +277,32 @@ export default async function AdminPmePage({
                     {utilisations(c.code)}
                     {c.max_inscriptions ? ` / ${c.max_inscriptions}` : ""}
                   </td>
-                  <td className="px-4 py-3">{c.actif ? "Actif" : "Désactivé"}</td>
                   <td className="px-4 py-3">
-                    <form action={basculerCode.bind(null, c.code, !c.actif)}>
-                      <button type="submit" className="min-h-12 text-base font-semibold text-marine underline whitespace-nowrap">
-                        {c.actif ? "Désactiver" : "Activer"}
-                      </button>
-                    </form>
+                    <span
+                      className={`rounded-full px-3 py-1 text-sm font-bold whitespace-nowrap ${
+                        c.actif ? "bg-green-100 text-agri-fonce" : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {c.actif ? "✅ Actif" : "⛔ Désactivé"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.actif ? (
+                      <BoutonSupprimer
+                        action={basculerCode.bind(null, c.code, false)}
+                        question={`Désactiver le code ${c.code} ? Plus personne ne pourra s'inscrire avec.`}
+                        libelle="Désactiver ce code"
+                      />
+                    ) : (
+                      <form action={basculerCode.bind(null, c.code, true)}>
+                        <button
+                          type="submit"
+                          className="flex min-h-12 items-center justify-center rounded-xl bg-agri px-4 text-base font-bold whitespace-nowrap text-white hover:bg-agri-fonce"
+                        >
+                          Activer ce code
+                        </button>
+                      </form>
+                    )}
                   </td>
                 </tr>
               ))}
