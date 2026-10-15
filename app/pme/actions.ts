@@ -16,14 +16,24 @@ import {
 const MESSAGE_CODE_INVALIDE =
   "Ce code d'invitation n'est pas valide. Demandez-le à votre association ou à AGRIKEY.";
 
-/** Vérifie dans la base que le code d'invitation existe, est actif et n'est pas épuisé. */
-async function codeInvitationValide(
+const MESSAGE_VERIFICATION_IMPOSSIBLE =
+  "Le code n'a pas pu être vérifié pour le moment. Réessayez dans un instant ou contactez AGRIKEY.";
+
+/**
+ * Vérifie dans la base que le code d'invitation existe, est actif et n'est pas épuisé.
+ * Renvoie le message d'erreur à afficher, ou null si le code est accepté.
+ */
+async function verifierCodeInvitation(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   code: string | null
-): Promise<boolean> {
-  if (!code) return false;
+): Promise<string | null> {
+  if (!code) return MESSAGE_CODE_INVALIDE;
   const { data, error } = await supabase.rpc("pme_code_valide", { p_code: code });
-  return !error && data === true;
+  if (error) {
+    console.error("Vérification du code d'invitation impossible :", error.message);
+    return MESSAGE_VERIFICATION_IMPOSSIBLE;
+  }
+  return data === true ? null : MESSAGE_CODE_INVALIDE;
 }
 const MESSAGE_CONDITIONS = "Cochez la case pour accepter les conditions d'utilisation.";
 
@@ -61,8 +71,9 @@ export async function inscrire(
 
   const supabase = await createSupabaseServerClient();
   // Inscription sur invitation : pas de compte sans code valide.
-  if (!(await codeInvitationValide(supabase, codePartenaire))) {
-    return { erreur: MESSAGE_CODE_INVALIDE };
+  const erreurCode = await verifierCodeInvitation(supabase, codePartenaire);
+  if (erreurCode) {
+    return { erreur: erreurCode };
   }
   const origine =
     (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
@@ -155,8 +166,9 @@ export async function creerEntreprise(
   if (!conditionsAcceptees(formData)) {
     return { erreur: MESSAGE_CONDITIONS };
   }
-  if (!(await codeInvitationValide(supabase, codePartenaire))) {
-    return { erreur: MESSAGE_CODE_INVALIDE };
+  const erreurCode = await verifierCodeInvitation(supabase, codePartenaire);
+  if (erreurCode) {
+    return { erreur: erreurCode };
   }
 
   const { error } = await supabase.from("entreprises").insert({
