@@ -414,3 +414,17 @@ ${SIGNATURE}`,
 export function trouverModele(code: string): Modele | undefined {
   return MODELES.find((m) => m.code === code);
 }
+
+/** Modèles visibles selon une liste d'autorisation (null ou « * » = tous). */
+export function filtrerModeles(autorises: string[] | null): Modele[] {
+  if (!autorises || autorises.includes("*")) return MODELES;
+  return MODELES.filter((m) => autorises.includes(m.code));
+}
+
+/** Résumé lisible d'une liste d'autorisation, pour l'administration. */
+export function resumerModeles(autorises: string[] | null): string {
+  if (!autorises || autorises.includes("*")) return "Tous les modèles";
+  const titres = filtrerModeles(autorises).map((m) => m.titre);
+  if (titres.length === 0) return "Aucun modèle";
+  return `${titres.length} modèle${titres.length > 1 ? "s" : ""} : ${titres.join(", ")}`;
+}

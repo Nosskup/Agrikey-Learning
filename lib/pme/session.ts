@@ -101,3 +101,15 @@ export async function estAdmin(supabase: ClientSupabase, userId: string): Promis
   const { data } = await supabase.from("profiles").select("role").eq("user_id", userId).maybeSingle();
   return data?.role === "admin";
 }
+
+/**
+ * Modèles de documents autorisés pour l'utilisateur connecté (liste du membre,
+ * sinon de son code). null = tous les modèles.
+ */
+export async function modelesAutorises(supabase: ClientSupabase): Promise<string[] | null> {
+  const { data, error } = await supabase.rpc("pme_mes_modeles");
+  // Base pas encore mise à jour ou aucune restriction : tous les modèles.
+  if (error || data == null) return null;
+  const liste = data as string[];
+  return liste.includes("*") ? null : liste;
+}

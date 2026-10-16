@@ -505,3 +505,9 @@ Inscription sur invitation et validation (15 octobre 2026) : exécuter
 (table `codes_invitation`, gérée depuis `/pme/admin`), personne ne peut s'inscrire ; chaque
 nouvelle entreprise reste « en attente » (`/pme/en-attente`) jusqu'à sa validation par un
 administrateur. Ces règles sont appliquées dans la base (trigger `pme_proteger_entreprise`).
+
+Modèles de documents autorisés (16 octobre 2026) : exécuter
+`supabase/migrations/20261018_pme_modeles_autorises.sql`. Réglage par code
+(`/pme/admin/code/[code]`) et par membre (`/pme/admin/entreprise/[id]`) : la liste du membre
+prime, sinon celle de son code, sinon tous les modèles. Vérifié dans la base (trigger
+`pme_document_modele`) ; les documents déjà créés restent consultables.

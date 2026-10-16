@@ -93,6 +93,11 @@ export async function creerDocument(
   const modele = trouverModele(code);
   if (!modele) return { erreur: "Ce modèle n'existe pas. Retournez à la liste des documents." };
 
+  const { data: autorise } = await supabase.rpc("pme_modele_autorise", { p_modele: modele.code });
+  if (autorise === false) {
+    return { erreur: "Ce modèle n'est pas ouvert pour votre compte. Contactez votre association ou AGRIKEY." };
+  }
+
   const donnees = lireDonnees(modele, formData);
   if (typeof donnees === "string") return { erreur: donnees };
 
