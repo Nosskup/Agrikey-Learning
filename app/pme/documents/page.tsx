@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { exigerEntreprise } from "@/lib/pme/session";
-import { MODELES } from "@/lib/pme/modeles";
+import { exigerEntreprise, modelesAutorises } from "@/lib/pme/session";
+import { MODELES, filtrerModeles } from "@/lib/pme/modeles";
 
 export const metadata = { title: "Documents" };
 
@@ -14,6 +14,7 @@ export default async function DocumentsPage() {
     .limit(50);
 
   const icones = new Map(MODELES.map((m) => [m.code, m.icone]));
+  const disponibles = filtrerModeles(await modelesAutorises(supabase));
 
   return (
     <div className="space-y-6">
@@ -28,8 +29,14 @@ export default async function DocumentsPage() {
         Choisissez un modèle, remplissez le formulaire : votre logo et vos coordonnées sont ajoutés automatiquement.
       </p>
 
+      {disponibles.length === 0 && (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-base text-amber-900">
+          Aucun modèle de document n&apos;est ouvert pour votre compte. Contactez votre association ou AGRIKEY.
+        </p>
+      )}
+
       <section className="grid gap-3 sm:grid-cols-2">
-        {MODELES.map((m) => (
+        {disponibles.map((m) => (
           <Link
             key={m.code}
             href={`/pme/documents/nouveau/${m.code}`}

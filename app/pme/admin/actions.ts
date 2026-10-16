@@ -5,6 +5,7 @@ import { refresh } from "next/cache";
 import { estAdmin, utilisateurConnecte } from "@/lib/pme/session";
 import { lireCodePartenaire, lireTexte, uuidValide } from "@/lib/pme/validation";
 import type { EtatFormulaire } from "../actions";
+import { MODELES } from "@/lib/pme/modeles";
 
 async function exigerAdmin() {
   const { supabase, user } = await utilisateurConnecte();
@@ -55,4 +56,36 @@ export async function basculerCode(code: string, actif: boolean) {
   const supabase = await exigerAdmin();
   await supabase.from("codes_invitation").update({ actif }).eq("code", code);
   refresh();
+}
+
+/** Lit le choix de modèles d'un formulaire : null = suivre le code, ["*"] = tous, sinon la liste cochée. */
+function lireChoixModeles(formData: FormData): string[] | null {
+  const mode = formData.get("mode");
+  if (mode === "code") return null;
+  if (mode === "tous") return ["*"];
+  const codesConnus = new Set(MODELES.map((m) => m.code));
+  return formData
+    .getAll("modeles")
+    .map(String)
+    .filter((c) => codesConnus.has(c));
+}
+
+export async function definirModelesCode(code: string, formData: FormData) {
+  const supabase = await exigerAdmin();
+  const choix = lireChoixModeles(formData);
+  // Pour un code, « tous » est enregistré comme NULL (aucune restriction).
+  const valeur = choix === null || choix.includes("*") ? null : choix;
+  await supabase.from("codes_invitation").update({ modeles_autorises: valeur }).eq("code", code);
+  redirect("/pme/admin");
+}
+
+export async function definirModelesEntreprise(entrepriseId: string, formData: FormData) {
+  const supabase = await exigerAdmin();
+  if (uuidValide(entrepriseId)) {
+    await supabase.rpc("pme_definir_modeles_entreprise", {
+      p_entreprise: entrepriseId,
+      p_modeles: lireChoixModeles(formData),
+    });
+  }
+  redirect("/pme/admin");
 }

@@ -6,6 +6,7 @@ import BoutonSupprimer from "@/components/pme/BoutonSupprimer";
 import { boutonSecondaire } from "@/components/pme/styles";
 import { basculerCode, changerStatut } from "./actions";
 import FormulaireCode from "./FormulaireCode";
+import { resumerModeles } from "@/lib/pme/modeles";
 
 export const metadata = { title: "Administration AGRIKEY PME" };
 
@@ -21,8 +22,15 @@ type EntrepriseInscrite = {
   inscrite_le: string;
   active_30_jours: boolean;
   documents: number;
+  modeles_autorises: string[] | null;
 };
-type CodeInvitation = { code: string; libelle: string; actif: boolean; max_inscriptions: number | null };
+type CodeInvitation = {
+  code: string;
+  libelle: string;
+  actif: boolean;
+  max_inscriptions: number | null;
+  modeles_autorises: string[] | null;
+};
 
 const STATUTS = {
   en_attente: { libelle: "En attente", classe: "bg-amber-100 text-amber-900" },
@@ -65,7 +73,7 @@ export default async function AdminPmePage({
     await Promise.all([
       supabase.rpc("pme_statistiques_partenaires"),
       supabase.rpc("pme_liste_entreprises"),
-      supabase.from("codes_invitation").select("code, libelle, actif, max_inscriptions").order("created_at"),
+      supabase.from("codes_invitation").select("code, libelle, actif, max_inscriptions, modeles_autorises").order("created_at"),
     ]);
 
   const lignes = (data ?? []) as Ligne[];
@@ -226,6 +234,12 @@ export default async function AdminPmePage({
                         {e.statut === "valide" ? "Suspendre" : "Valider"}
                       </button>
                     </form>
+                    <Link
+                      href={`/pme/admin/entreprise/${e.entreprise_id}`}
+                      className="block min-h-12 content-center text-base font-semibold whitespace-nowrap text-agri underline"
+                    >
+                      Modèles{e.modeles_autorises ? " (personnalisés)" : ""}
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -269,6 +283,10 @@ export default async function AdminPmePage({
                   <td className="px-4 py-3">
                     <span className="block font-mono font-bold text-marine">{c.code}</span>
                     {c.libelle && <span className="block text-slate-500">{c.libelle}</span>}
+                    <span className="block text-slate-600">📄 {resumerModeles(c.modeles_autorises)}</span>
+                    <Link href={`/pme/admin/code/${c.code}`} className="block min-h-12 content-center font-semibold text-agri underline">
+                      Choisir les modèles
+                    </Link>
                     <span className="block font-mono text-sm break-all text-slate-500">
                       https://{hote}/pme/inscription?code={c.code}
                     </span>
