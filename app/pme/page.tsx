@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { exigerEntreprise, utilisateurConnecte } from "@/lib/pme/session";
 import Presentation from "./Presentation";
+import BoutonInstallation from "@/components/pme/Installation";
 import { bornesDuMois, formatFCFA, nomDuMois } from "@/lib/pme/format";
 
 export const metadata = { title: { absolute: "AGRIKEY PME — Gérez votre entreprise simplement" } };
@@ -79,6 +80,8 @@ export default async function TableauDeBord() {
         <p className="text-base text-slate-600">Bonjour,</p>
         <h1 className="text-3xl font-black text-marine">{entreprise.nom}</h1>
       </div>
+
+      <BoutonInstallation />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {cartes.map((carte) => (

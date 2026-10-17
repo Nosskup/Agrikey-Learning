@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { estAdmin } from "@/lib/pme/session";
 import { deconnecter } from "./actions";
 import BoutonAjouter from "@/components/pme/BoutonAjouter";
+import { EnregistrementApplication } from "@/components/pme/Installation";
 
 export const metadata: Metadata = {
   title: {
@@ -12,6 +13,8 @@ export const metadata: Metadata = {
   },
   description:
     "Caisse, projets, documents : l'outil de gestion simple et en français pour les petites entreprises maliennes.",
+  manifest: "/pme/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "AGRIKEY PME", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -79,6 +82,7 @@ export default async function PmeLayout({
       </footer>
 
       {user && <BoutonAjouter />}
+      <EnregistrementApplication />
     </div>
   );
 }
