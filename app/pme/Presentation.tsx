@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { boutonPrincipal, boutonSecondaire } from "@/components/pme/styles";
+import BoutonInstallation from "@/components/pme/Installation";
 
 const MODULES = [
   { icone: "💰", titre: "Caisse", texte: "Notez l'argent reçu et dépensé, voyez votre solde du mois." },
@@ -29,6 +30,8 @@ export default function Presentation() {
           </Link>
         </div>
       </section>
+
+      <BoutonInstallation />
 
       <section className="grid gap-3 sm:grid-cols-2">
         {MODULES.map((m) => (

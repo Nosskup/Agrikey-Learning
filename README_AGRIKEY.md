@@ -511,3 +511,11 @@ Modèles de documents autorisés (16 octobre 2026) : exécuter
 (`/pme/admin/code/[code]`) et par membre (`/pme/admin/entreprise/[id]`) : la liste du membre
 prime, sinon celle de son code, sinon tous les modèles. Vérifié dans la base (trigger
 `pme_document_modele`) ; les documents déjà créés restent consultables.
+
+### Application installable (PWA)
+
+L'espace `/pme` peut s'installer sur le téléphone comme une application :
+
+- manifeste : `app/pme/manifest.webmanifest/route.ts` (portée `/pme`, icônes dans `public/pme/`, icône Apple `app/pme/apple-icon.png`) ;
+- service worker : `public/pme-sw.js`, enregistré par `components/pme/Installation.tsx`. Il ne met en cache **aucune donnée privée**, seulement la page `public/pme/hors-ligne.html` affichée sans réseau. Changer le nom du cache (`agrikey-pme-v1`) si cette page change ;
+- bouton « Installer l'application » (Android/Chrome) ou instructions Safari (iPhone) sur la présentation et le tableau de bord.
