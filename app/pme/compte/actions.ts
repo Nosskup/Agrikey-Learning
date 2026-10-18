@@ -7,6 +7,8 @@ import type { EtatFormulaire } from "../actions";
 
 // Tables d'AGRIKEY PME, dans un ordre qui respecte les liens entre elles.
 const TABLES_PME = [
+  "opportunites_favoris",
+  "opportunites_preferences",
   "documents",
   "taches",
   "projets",
@@ -30,7 +32,8 @@ export async function supprimerDonneesPme(
 
   for (const table of TABLES_PME) {
     const { error } = await supabase.from(table).delete().eq("user_id", user.id);
-    if (error) {
+    // Table absente (script SQL des opportunités pas encore exécuté) : rien à supprimer.
+    if (error && error.code !== "PGRST205" && error.code !== "42P01") {
       return { erreur: "La suppression n'a pas pu aller au bout. Réessayez dans un instant ; vos autres données sont intactes." };
     }
   }
