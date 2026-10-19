@@ -24,7 +24,7 @@ export default function ConfidentialitePage() {
           paragraphes: [
             "Votre compte : adresse e-mail et mot de passe (enregistré chiffré, personne ne peut le lire).",
             "Votre entreprise : nom, activité, adresse, téléphone, e-mail, RCCM, logo, couleur et, le code d'invitation utilisé à l'inscription et le statut de votre inscription (en attente, validée ou refusée).",
-            "Votre activité : opérations de caisse, catégories, projets, tâches et documents que vous créez.",
+            "Votre activité : opérations de caisse, catégories, projets, tâches et documents que vous créez, domaines suivis et annonces enregistrées dans « Opportunités ».",
           ],
         },
         {

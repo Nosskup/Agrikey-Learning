@@ -67,6 +67,12 @@ export default async function TableauDeBord() {
         : `${nbDocuments} document${nbDocuments > 1 ? "s" : ""} créé${nbDocuments > 1 ? "s" : ""}`,
     },
     {
+      href: "/pme/opportunites",
+      icone: "🔎",
+      titre: "Opportunités",
+      info: "Emplois, appels d'offres, actualités au Mali",
+    },
+    {
       href: "/pme/entreprise",
       icone: "🏪",
       titre: "Mon entreprise",
@@ -102,7 +108,7 @@ export default async function TableauDeBord() {
 
         <Link
           href="/pme/affiches"
-          className="flex min-h-28 items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-100 p-5 text-slate-500 sm:col-span-2"
+          className="flex min-h-28 items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-100 p-5 text-slate-500"
         >
           <span aria-hidden="true" className="text-4xl grayscale">
             🎨

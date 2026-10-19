@@ -519,3 +519,24 @@ L'espace `/pme` peut s'installer sur le téléphone comme une application :
 - manifeste : `app/pme/manifest.webmanifest/route.ts` (portée `/pme`, icônes dans `public/pme/`, icône Apple `app/pme/apple-icon.png`) ;
 - service worker : `public/pme-sw.js`, enregistré par `components/pme/Installation.tsx`. Il ne met en cache **aucune donnée privée**, seulement la page `public/pme/hors-ligne.html` affichée sans réseau. Changer le nom du cache (`agrikey-pme-v1`) si cette page change ;
 - bouton « Installer l'application » (Android/Chrome) ou instructions Safari (iPhone) sur la présentation et le tableau de bord.
+
+### Opportunités (emplois, appels d'offres, actualités au Mali)
+
+Mise en place : Supabase > SQL Editor, exécuter `supabase/migrations/20261019_pme_opportunites.sql`
+(domaines suivis, annonces enregistrées, annonces ajoutées par un administrateur). Sans ce script,
+les sources automatiques s'affichent quand même ; seuls l'enregistrement et l'ajout manuel ne marchent pas.
+
+Pages :
+- `/pme/opportunites` : onglets Emplois, Appels d'offres, Actualités, Mes annonces ; recherche ;
+  « Voir tous les domaines » ; liste de sites utiles ;
+- `/pme/opportunites/domaines` : domaines suivis (par défaut : agriculture, agroalimentaire, entrepreneuriat) et mots-clés ;
+- `/pme/opportunites/ajouter` (administrateurs) : publier une annonce vue dans un journal, à la DGMP, dans un réseau… ;
+- `/pme/opportunites/annonce/[id]` : annonce publiée sans lien externe.
+
+Sources automatiques (`lib/opportunites/flux.ts`), relues au plus une fois par heure :
+- Google Actualités (recherche en français sur le Mali, 30 derniers jours) : emplois, appels d'offres et actualités ;
+- ReliefWeb : offres d'emploi des ONG et agences de l'ONU au Mali ;
+- Banque mondiale : avis de passation de marchés des projets au Mali.
+
+Une source en panne est signalée sans bloquer les autres. Les annonces expirées (date limite passée) sont masquées.
+Ajouter un domaine : `lib/opportunites/domaines.ts`. Ajouter un site utile : `lib/opportunites/sites.ts`.
