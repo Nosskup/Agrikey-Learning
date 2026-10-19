@@ -539,3 +539,25 @@ Sources automatiques (`lib/opportunites/flux.ts`), relues au plus une fois par h
 
 Une source en panne est signalée sans bloquer les autres. Seules les annonces valables s'affichent : date limite non dépassée, ou, sans date limite, publiées depuis moins de 30 jours (`JOURS_VALIDITE` dans `flux.ts`).
 Ajouter un domaine : `lib/opportunites/domaines.ts`. Ajouter un site utile : `lib/opportunites/sites.ts`.
+
+### Abonnement Premium (PayDunya)
+
+Mise en place : Supabase > SQL Editor, exécuter `supabase/migrations/20261020_pme_abonnements.sql`
+(tables `pme_paiements` et `pme_abonnements`, fonctions `pme_activer_abonnement` et `pme_est_premium`).
+Les paiements des formations (`payments`, `/api/payments/...`) ne sont pas touchés.
+
+Variables d'environnement (Vercel > Settings > Environment Variables), les mêmes que pour les formations :
+`PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`.
+`PAYDUNYA_MODE` absent = **mode test** (bac à sable PayDunya, clés de test, aucun argent réel) ;
+`PAYDUNYA_MODE=live` = paiements réels (clés de production).
+
+Pages et fonctionnement :
+- `/pme/abonnement` : statut (Gratuit / Premium jusqu'au…), formules, historique des paiements ;
+- le bouton « Payer » crée la facture PayDunya (montant lu dans `lib/pme/formules.ts`, jamais envoyé par le navigateur) ;
+- après paiement, PayDunya renvoie vers `/pme/abonnement/retour` et prévient `/api/pme/paydunya` ;
+  dans les deux cas le paiement est revérifié auprès de PayDunya (montant, facture, mode) avant d'activer
+  l'abonnement (`lib/pme/paydunya.ts`). Un renouvellement s'ajoute au temps restant.
+- Aucune fonction n'est encore réservée aux abonnés : `estPremium()` (`lib/pme/session.ts`) sert à le faire.
+
+Avant de passer en paiements réels : effacer les abonnements de test
+(`delete from pme_abonnements where mode = 'test';`), mettre les clés de production et `PAYDUNYA_MODE=live`.

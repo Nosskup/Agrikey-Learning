@@ -37,6 +37,13 @@ export default async function ComptePage() {
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-xl font-black text-marine">Abonnement</h2>
+        <Link href="/pme/abonnement" className={boutonSecondaire}>
+          ⭐ Mon abonnement et mes paiements
+        </Link>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-xl font-black text-marine">Mot de passe</h2>
         <Link href="/pme/nouveau-mot-de-passe" className={boutonSecondaire}>
           🔑 Changer mon mot de passe
@@ -57,7 +64,7 @@ export default async function ComptePage() {
         <h2 className="text-xl font-black text-red-800">Supprimer mes données AGRIKEY PME</h2>
         <p className="text-base text-red-900">
           Efface définitivement votre entreprise, votre caisse, vos projets, vos documents et votre logo. Cette action ne
-          peut pas être annulée. Votre compte AGRIKEY (formations) est conservé.
+          peut pas être annulée. Votre compte AGRIKEY (formations) et la trace de vos paiements (comptabilité) sont conservés.
         </p>
         <FormulaireSuppression />
       </section>

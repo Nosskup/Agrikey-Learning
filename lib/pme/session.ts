@@ -113,3 +113,9 @@ export async function modelesAutorises(supabase: ClientSupabase): Promise<string
   const liste = data as string[];
   return liste.includes("*") ? null : liste;
 }
+
+/** Vrai si l'utilisateur connecté a un abonnement Premium en cours (faux si la base n'est pas encore à jour). */
+export async function estPremium(supabase: ClientSupabase): Promise<boolean> {
+  const { data, error } = await supabase.rpc("pme_est_premium");
+  return !error && data === true;
+}
