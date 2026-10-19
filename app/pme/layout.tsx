@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { estAdmin } from "@/lib/pme/session";
 import { deconnecter } from "./actions";
-import BoutonAjouter from "@/components/pme/BoutonAjouter";
+import BarreNavigation from "@/components/pme/BarreNavigation";
+import Icone from "@/components/pme/Icones";
 import { EnregistrementApplication } from "@/components/pme/Installation";
 
 export const metadata: Metadata = {
@@ -33,22 +34,38 @@ export default async function PmeLayout({
   const admin = user ? await estAdmin(supabase, user.id) : false;
 
   return (
-    <div className="pme min-h-screen bg-slate-50 text-base text-slate-900">
-      <header className="no-print sticky top-0 z-40 bg-marine text-white">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
-          <Link href="/pme" className="flex items-center gap-2 text-lg font-black">
-            AGRIKEY <span className="rounded-md bg-agri px-2 py-0.5 text-base">PME</span>
+    <div className="pme min-h-screen bg-fond text-base text-slate-900">
+      <header className="no-print sticky top-0 z-40 bg-linear-to-r from-marine to-marine-clair text-white shadow-md shadow-marine/20">
+        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
+          <Link href="/pme" className="flex items-center gap-2.5">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/logo-emblem.png" alt="" className="h-full w-full object-contain" />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-lg font-black tracking-tight">AGRIKEY</span>
+              <span className="block text-xs font-bold tracking-[0.2em] text-green-300">PME</span>
+            </span>
           </Link>
 
           {user && (
-            <form action={deconnecter}>
-              <button
-                type="submit"
-                className="min-h-12 rounded-lg px-3 text-base font-semibold text-slate-200 hover:bg-marine-clair hover:text-white"
+            <div className="flex items-center gap-1">
+              <Link
+                href="/pme/compte"
+                aria-label="Mon compte"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
               >
-                Se déconnecter
-              </button>
-            </form>
+                <Icone nom="compte" className="h-5 w-5" />
+              </Link>
+              <form action={deconnecter}>
+                <button
+                  type="submit"
+                  className="min-h-11 rounded-full px-3 text-sm font-semibold text-slate-200 hover:bg-white/10 hover:text-white"
+                >
+                  Se déconnecter
+                </button>
+              </form>
+            </div>
           )}
         </div>
       </header>
@@ -81,7 +98,7 @@ export default async function PmeLayout({
         </Link>
       </footer>
 
-      {user && <BoutonAjouter />}
+      {user && <BarreNavigation />}
       <EnregistrementApplication />
     </div>
   );

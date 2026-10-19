@@ -2,9 +2,10 @@
 
 import { useOptimistic, useTransition } from "react";
 import type { Annonce } from "@/lib/opportunites/flux";
+import Icone from "@/components/pme/Icones";
 import { enregistrerAnnonce, retirerAnnonce } from "./actions";
 
-/** Ajoute l'annonce à « Mes annonces » (ou l'en retire) en un geste. */
+/** Étoile ronde : ajoute l'annonce à « Mes annonces » (ou l'en retire) en un geste. */
 export default function BoutonEnregistrer({ annonce, enregistree }: { annonce: Annonce; enregistree: boolean }) {
   const [, demarrer] = useTransition();
   const [active, setActive] = useOptimistic(enregistree);
@@ -13,6 +14,8 @@ export default function BoutonEnregistrer({ annonce, enregistree }: { annonce: A
     <button
       type="button"
       aria-pressed={active}
+      aria-label={active ? "Retirer de mes annonces" : "Enregistrer dans mes annonces"}
+      title={active ? "Retirer de mes annonces" : "Enregistrer"}
       onClick={() =>
         demarrer(async () => {
           setActive(!active);
@@ -20,12 +23,11 @@ export default function BoutonEnregistrer({ annonce, enregistree }: { annonce: A
           else await enregistrerAnnonce(annonce);
         })
       }
-      className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold ${
-        active ? "border-agri bg-green-50 text-agri-fonce" : "border-slate-300 bg-white text-marine hover:bg-slate-50"
+      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-90 ${
+        active ? "bg-amber-50 text-amber-500" : "bg-slate-50 text-slate-400 hover:text-amber-500"
       }`}
     >
-      <span aria-hidden="true">{active ? "★" : "☆"}</span>
-      {active ? "Enregistrée" : "Enregistrer"}
+      <Icone nom="etoile" plein={active} className="h-6 w-6" />
     </button>
   );
 }

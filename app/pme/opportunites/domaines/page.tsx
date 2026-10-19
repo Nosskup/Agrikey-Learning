@@ -13,7 +13,7 @@ export default async function DomainesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-marine">Mes domaines</h1>
+        <h1 className="text-3xl font-black tracking-tight text-marine">Mes domaines</h1>
         <p className="mt-2 text-base text-slate-700">
           Les offres d&apos;emploi, appels d&apos;offres et actualités du Mali seront choisis selon ces domaines.
         </p>

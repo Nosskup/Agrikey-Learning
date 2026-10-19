@@ -31,12 +31,6 @@ export type ResultatSource = {
 const DUREE_CACHE = 3600; // secondes
 const DELAI_MAX = 8000; // millisecondes
 
-// Lieux qui montrent qu'une annonce concerne le Mali (sources internationales).
-const LIEUX_MALI = [
-  "mali", "bamako", "kayes", "koulikoro", "sikasso", "segou", "mopti", "tombouctou", "gao",
-  "kidal", "menaka", "taoudeni", "koutiala", "bougouni", "nioro du sahel",
-];
-
 // ---------------------------------------------------------------------
 // Texte
 // ---------------------------------------------------------------------
@@ -186,27 +180,10 @@ function googleActualites(type: TypeAnnonce, domaines: Domaine[], motsLibres: st
         lien: e.lien,
         source: couper(source, 120),
         date: e.date,
+        dateLimite: dateLimiteDansTexte(titre),
         // Le résumé de Google Actualités ne fait que répéter le titre.
       };
     })
-  );
-}
-
-/** ReliefWeb (ONU) : offres d'emploi des ONG et agences, filtrées sur le Mali. */
-function reliefWebEmplois() {
-  const url = "https://reliefweb.int/jobs/rss.xml?search=Mali";
-  return sansPanne("ReliefWeb", async () =>
-    lireFlux(await telecharger(url))
-      .filter((e) => contientUnMot(`${e.titre} ${e.resume}`, LIEUX_MALI))
-      .map((e) => ({
-        type: "emploi" as const,
-        titre: couper(e.titre, 300),
-        lien: e.lien,
-        source: "ReliefWeb",
-        resume: couper(e.resume, 400),
-        date: e.date,
-        dateLimite: dateLimiteDansTexte(e.resume),
-      }))
   );
 }
 
@@ -299,20 +276,34 @@ export async function annoncesAutomatiques(
     motsCles.length === 0 ? annonces : annonces.filter((a) => contientUnMot(`${a.titre} ${a.resume ?? ""}`, motsCles));
 
   const sources: Promise<ResultatSource>[] = [googleActualites(type, domaines, libres)];
-  if (type === "emploi") sources.push(reliefWebEmplois().then((r) => ({ ...r, annonces: garderDomaine(r.annonces) })));
   if (type === "appel_offres") sources.push(banqueMondiale().then((r) => ({ ...r, annonces: garderDomaine(r.annonces) })));
 
   return Promise.all(sources);
 }
 
-/** Fusionne, retire les doublons, écarte les annonces expirées et trie (les plus récentes d'abord). */
+/** Une annonce sans date limite est considérée comme valable ce nombre de jours après sa publication. */
+export const JOURS_VALIDITE = 30;
+
+/**
+ * Vrai si l'annonce est encore valable :
+ * - avec une date limite : jusqu'à cette date incluse ;
+ * - sinon : publiée il y a moins de JOURS_VALIDITE jours (sans date du tout : écartée).
+ */
+export function estValable(annonce: Annonce, aujourdhui: string): boolean {
+  if (annonce.dateLimite) return annonce.dateLimite >= aujourdhui;
+  if (!annonce.date) return false;
+  const age = Date.parse(`${aujourdhui}T23:59:59Z`) - Date.parse(annonce.date);
+  return age <= JOURS_VALIDITE * 86_400_000;
+}
+
+/** Fusionne, retire les doublons et les annonces périmées, et trie (les plus récentes d'abord). */
 export function fusionner(listes: Annonce[][], aujourdhui: string): Annonce[] {
   const vues = new Set<string>();
   const resultat: Annonce[] = [];
   for (const annonce of listes.flat()) {
     const cle = normaliser(annonce.titre).replace(/[^a-z0-9]/g, "").slice(0, 80);
     if (vues.has(annonce.lien) || vues.has(cle)) continue;
-    if (annonce.dateLimite && annonce.dateLimite < aujourdhui) continue;
+    if (!estValable(annonce, aujourdhui)) continue;
     vues.add(annonce.lien);
     vues.add(cle);
     resultat.push(annonce);
