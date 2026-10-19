@@ -12,7 +12,6 @@ export const SITES_UTILES: { titre: string; sites: SiteUtile[] }[] = [
     titre: "Offres d'emploi",
     sites: [
       { nom: "ANPE Mali", description: "Agence nationale pour l'emploi", lien: "https://www.anpe-mali.org" },
-      { nom: "ReliefWeb — Mali", description: "Emplois des ONG et agences de l'ONU", lien: "https://reliefweb.int/jobs?search=Mali" },
     ],
   },
   {
