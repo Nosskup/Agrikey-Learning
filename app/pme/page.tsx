@@ -5,6 +5,7 @@ import BoutonInstallation from "@/components/pme/Installation";
 import { bornesDuMois, formatFCFA, nomDuMois } from "@/lib/pme/format";
 import Icone, { type NomIcone } from "@/components/pme/Icones";
 import { carte } from "@/components/pme/styles";
+import { iaDisponible } from "@/lib/pme/ia";
 
 export const metadata = { title: { absolute: "AGRIKEY PME — Gérez votre entreprise simplement" } };
 
@@ -79,6 +80,17 @@ export default async function TableauDeBord() {
       info: "Emplois, marchés, actualités",
       teinte: "bg-violet-50 text-violet-700",
     },
+    ...(iaDisponible()
+      ? [
+          {
+            href: "/pme/affiches",
+            icone: "palette" as const,
+            titre: "Affiches et logos IA",
+            info: "Prêts pour WhatsApp",
+            teinte: "bg-pink-50 text-pink-700",
+          },
+        ]
+      : []),
     {
       href: "/pme/entreprise",
       icone: "entreprise",
@@ -171,6 +183,7 @@ export default async function TableauDeBord() {
             </Link>
           ))}
 
+          {!iaDisponible() && (
           <Link
             href="/pme/affiches"
             className="flex min-h-32 flex-col justify-between gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-slate-500"
@@ -185,6 +198,7 @@ export default async function TableauDeBord() {
               </span>
             </span>
           </Link>
+          )}
         </div>
       </section>
     </div>

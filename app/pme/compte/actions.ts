@@ -15,6 +15,7 @@ const TABLES_PME = [
   "operations_caisse",
   "categories_caisse",
   "liste_attente_ia",
+  "creations_ia",
   "entreprises",
 ] as const;
 

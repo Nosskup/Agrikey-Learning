@@ -561,3 +561,12 @@ Pages et fonctionnement :
 
 Avant de passer en paiements réels : effacer les abonnements de test
 (`delete from pme_abonnements where mode = 'test';`), mettre les clés de production et `PAYDUNYA_MODE=live`.
+
+### Affiches et logos IA (`/pme/affiches`)
+
+- **Claude** (`claude-opus-5-5`, SDK `@anthropic-ai/sdk`) dessine l'affiche ou le logo en SVG : textes français exacts, net à toute taille. Repli automatique en cas de refus (`fallbacks: "default"`).
+- **OpenAI** (`gpt-image-2` par défaut, modifiable avec `OPENAI_IMAGE_MODEL`) crée, si le membre le demande, une photo de fond, en parallèle. Si elle échoue, l'affiche est faite sans photo.
+- Variables Vercel : `ANTHROPIC_API_KEY` (obligatoire ; sans elle la page reste « Bientôt disponible ») et `OPENAI_API_KEY` (facultative ; sans elle l'option photo est masquée).
+- Code : `lib/pme/ia.ts` (consignes, appels, nettoyage du SVG), `lib/pme/creations.ts` (formats), `app/pme/affiches/`.
+- Le SVG final (photo et logo intégrés) est stocké dans `creations_ia.svg` et servi par `/pme/affiches/[id]/image` avec une CSP stricte ; le navigateur le convertit en PNG pour le télécharger ou le partager.
+- Limite par mois (migration `20261021_pme_creations_ia.sql`) : celle du membre, sinon celle de son code, sinon 10 ; 0 = module fermé. Réglable dans l'administration (« Modèles et IA »). Le compteur `utilisations_ia` est séparé : supprimer une création ne rend pas le crédit, une création échouée ou interrompue est recréditée.

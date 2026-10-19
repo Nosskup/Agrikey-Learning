@@ -20,7 +20,7 @@ function Titre({ children }: { children: React.ReactNode }) {
 export default async function MesDonneesPage() {
   const { supabase, user, entreprise } = await exigerEntreprise();
 
-  const [{ data: categories }, { data: operations }, { data: projets }, { data: taches }, { data: documents }, { data: details }] =
+  const [{ data: categories }, { data: operations }, { data: projets }, { data: taches }, { data: documents }, { data: details }, { data: creations }] =
     await Promise.all([
       supabase.from("categories_caisse").select("id, nom, type").order("created_at").returns<Categorie[]>(),
       supabase
@@ -37,6 +37,7 @@ export default async function MesDonneesPage() {
         .returns<Tache[]>(),
       supabase.from("documents").select("id, titre, modele_code, created_at").order("created_at"),
       supabase.from("entreprises").select("code_partenaire, conditions_acceptees_le").eq("user_id", user.id).maybeSingle(),
+      supabase.from("creations_ia").select("id, type, titre, demande, created_at").eq("statut", "pret").order("created_at"),
     ]);
 
   const noms = new Map((categories ?? []).map((c) => [c.id, c.nom]));
@@ -194,6 +195,35 @@ export default async function MesDonneesPage() {
             <p className="mt-2 text-slate-600">
               Chaque document peut être retéléchargé en PDF depuis la rubrique Documents.
             </p>
+          </>
+        )}
+
+        <Titre>5. Affiches et logos IA</Titre>
+        {(creations ?? []).length === 0 ? (
+          <p className="mt-2">Aucune création.</p>
+        ) : (
+          <>
+            <table className="mt-2 w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={entete}>Date</th>
+                  <th className={entete}>Type</th>
+                  <th className={entete}>Titre</th>
+                  <th className={entete}>Description donnée</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(creations ?? []).map((c) => (
+                  <tr key={c.id}>
+                    <td className={`${cellule} whitespace-nowrap`}>{new Date(c.created_at).toLocaleDateString("fr-FR")}</td>
+                    <td className={cellule}>{c.type === "logo" ? "Logo" : "Affiche"}</td>
+                    <td className={cellule}>{c.titre}</td>
+                    <td className={cellule}>{(c.demande as { idee?: string } | null)?.idee}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-slate-600">Chaque image peut être retéléchargée depuis la rubrique Affiches et logos IA.</p>
           </>
         )}
 

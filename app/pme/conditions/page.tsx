@@ -52,6 +52,14 @@ export default function ConditionsPage() {
           ],
         },
         {
+          titre: "Affiches et logos créés par l'IA",
+          paragraphes: [
+            "Les affiches et logos sont créés automatiquement par une intelligence artificielle à partir de votre description. Relisez toujours les textes, prix et dates avant de publier : vous êtes responsable de ce que vous diffusez. Vous pouvez utiliser librement vos créations pour votre entreprise. Un logo créé par l'IA peut ressembler à d'autres logos : vérifiez-le avant de le déposer comme marque.",
+            "Le nombre de créations par mois est limité. Une création qui échoue n'est pas décomptée.",
+            "Il est interdit de demander des images trompeuses, offensantes, contraires à la loi, ou qui imitent la marque ou le visage d'une autre personne sans son accord.",
+          ],
+        },
+        {
           titre: "Disponibilité du service",
           paragraphes: [
             "Nous faisons de notre mieux pour que le service fonctionne sans interruption et que vos données soient protégées. Une panne reste possible : pensez à télécharger régulièrement votre journal de caisse et vos documents importants.",
