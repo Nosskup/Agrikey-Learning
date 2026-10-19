@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { exigerEntreprise, utilisateurConnecte } from "@/lib/pme/session";
+import { estPremium, exigerEntreprise, utilisateurConnecte } from "@/lib/pme/session";
 import Presentation from "./Presentation";
 import BoutonInstallation from "@/components/pme/Installation";
 import { bornesDuMois, formatFCFA, nomDuMois } from "@/lib/pme/format";
@@ -24,7 +24,7 @@ export default async function TableauDeBord() {
   const { supabase, entreprise } = await exigerEntreprise();
   const { debut, fin } = bornesDuMois();
 
-  const [operations, tachesAFaire, documents] = await Promise.all([
+  const [operations, tachesAFaire, documents, premium] = await Promise.all([
     supabase
       .from("operations_caisse")
       .select("type, montant")
@@ -37,6 +37,7 @@ export default async function TableauDeBord() {
     supabase
       .from("documents")
       .select("id", { count: "exact", head: true }),
+    estPremium(supabase),
   ]);
 
   const solde = (operations.data ?? []).reduce(
@@ -102,7 +103,14 @@ export default async function TableauDeBord() {
         <div aria-hidden="true" className="absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-agri/30" />
 
         <div className="relative">
-          <p className="text-base text-slate-200">Bonjour,</p>
+          <p className="flex items-center justify-between text-base text-slate-200">
+            Bonjour,
+            {premium && (
+              <Link href="/pme/abonnement" className="rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-black text-amber-950">
+                PREMIUM
+              </Link>
+            )}
+          </p>
           <h1 className="text-2xl leading-tight font-black">{entreprise.nom}</h1>
 
           <Link href="/pme/caisse" className="mt-5 block rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur hover:bg-white/15">
@@ -126,6 +134,22 @@ export default async function TableauDeBord() {
       </section>
 
       <BoutonInstallation />
+
+      {!premium && (
+        <Link
+          href="/pme/abonnement"
+          className={`${carte} flex items-center gap-4 p-4 hover:border-amber-200 active:scale-[0.99]`}
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+            <Icone nom="etoile" plein className="h-6 w-6" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-black text-marine">Passez à Premium</span>
+            <span className="block text-sm text-slate-500">À partir de 2 500 FCFA par mois, par Orange Money ou Moov</span>
+          </span>
+          <Icone nom="fleche" className="h-5 w-5 shrink-0 text-slate-400" />
+        </Link>
+      )}
 
       {/* Services */}
       <section>

@@ -90,3 +90,8 @@ export function ajouterJours(date: string, jours: number): string {
   d.setUTCDate(d.getUTCDate() + jours);
   return d.toISOString().slice(0, 10);
 }
+
+/** "2026-10-20T09:00:00Z" -> "20 octobre 2026" */
+export function dateLongue(iso: string): string {
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}

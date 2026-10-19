@@ -51,6 +51,7 @@ export default function ConfidentialitePage() {
           titre: "Durée de conservation",
           paragraphes: [
             "Vos données sont conservées tant que votre compte est utilisé. Vous pouvez les supprimer vous-même à tout moment.",
+            "Exception : la trace de vos paiements d'abonnement (date, formule, montant, statut) est conservée pour la comptabilité, même après la suppression de vos autres données. Le paiement lui-même est traité par PayDunya : AGRIKEY ne voit jamais votre numéro de carte ni votre code mobile money.",
           ],
         },
         {
