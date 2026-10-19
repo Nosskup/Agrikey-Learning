@@ -7,6 +7,7 @@ const MODULES = [
   { icone: "📋", titre: "Projets", texte: "Organisez vos tâches et voyez ce qu'il reste à faire cette semaine." },
   { icone: "📄", titre: "Documents", texte: "Devis, factures, reçus, lettres : prêts en PDF avec votre logo." },
   { icone: "🏪", titre: "Mon entreprise", texte: "Vos informations remplies une fois, utilisées partout." },
+  { icone: "🎨", titre: "Affiches et logos IA", texte: "Décrivez votre idée : l'IA crée une affiche ou un logo à partager." },
 ];
 
 /** Page d'accueil d'AGRIKEY PME pour les visiteurs non connectés. */

@@ -7,6 +7,7 @@ import { boutonSecondaire } from "@/components/pme/styles";
 import { basculerCode, changerStatut } from "./actions";
 import FormulaireCode from "./FormulaireCode";
 import { resumerModeles } from "@/lib/pme/modeles";
+import { QUOTA_IA_DEFAUT, resumerQuota } from "@/lib/pme/creations";
 
 export const metadata = { title: "Administration AGRIKEY PME" };
 
@@ -23,6 +24,8 @@ type EntrepriseInscrite = {
   active_30_jours: boolean;
   documents: number;
   modeles_autorises: string[] | null;
+  quota_ia?: number | null;
+  creations_ia_mois?: number;
 };
 type CodeInvitation = {
   code: string;
@@ -30,6 +33,7 @@ type CodeInvitation = {
   actif: boolean;
   max_inscriptions: number | null;
   modeles_autorises: string[] | null;
+  quota_ia?: number | null;
 };
 
 const STATUTS = {
@@ -73,12 +77,15 @@ export default async function AdminPmePage({
     await Promise.all([
       supabase.rpc("pme_statistiques_partenaires"),
       supabase.rpc("pme_liste_entreprises"),
-      supabase.from("codes_invitation").select("code, libelle, actif, max_inscriptions, modeles_autorises").order("created_at"),
+      supabase.from("codes_invitation").select("*").order("created_at"),
     ]);
 
   const lignes = (data ?? []) as Ligne[];
   const toutes = (liste ?? []) as EntrepriseInscrite[];
   const codes = (codesData ?? []) as CodeInvitation[];
+  // Limite IA effective d'un membre : la sienne, sinon celle de son code, sinon la valeur par défaut.
+  const quotaMembre = (e: EntrepriseInscrite) =>
+    e.quota_ia ?? codes.find((c) => c.code === e.code_partenaire)?.quota_ia ?? QUOTA_IA_DEFAUT;
   const enAttente = toutes.filter((e) => e.statut === "en_attente");
   const entreprises = toutes.filter((e) => !filtre || (e.code_partenaire ?? "AUCUN") === filtre);
   const utilisations = (c: string) => toutes.filter((e) => e.code_partenaire === c).length;
@@ -219,6 +226,11 @@ export default async function AdminPmePage({
                     <span className="block text-slate-500">
                       {[e.email, e.activite, e.ville].filter(Boolean).join(" · ")}
                     </span>
+                    {e.creations_ia_mois !== undefined && (
+                      <span className="block text-slate-600">
+                        🎨 {e.creations_ia_mois} / {quotaMembre(e)} créations IA ce mois
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">{e.code_partenaire || "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{new Date(e.inscrite_le).toLocaleDateString("fr-FR")}</td>
@@ -238,7 +250,7 @@ export default async function AdminPmePage({
                       href={`/pme/admin/entreprise/${e.entreprise_id}`}
                       className="block min-h-12 content-center text-base font-semibold whitespace-nowrap text-agri underline"
                     >
-                      Modèles{e.modeles_autorises ? " (personnalisés)" : ""}
+                      Modèles et IA{e.modeles_autorises || e.quota_ia != null ? " (personnalisés)" : ""}
                     </Link>
                   </td>
                 </tr>
@@ -284,8 +296,9 @@ export default async function AdminPmePage({
                     <span className="block font-mono font-bold text-marine">{c.code}</span>
                     {c.libelle && <span className="block text-slate-500">{c.libelle}</span>}
                     <span className="block text-slate-600">📄 {resumerModeles(c.modeles_autorises)}</span>
+                    <span className="block text-slate-600">🎨 {resumerQuota(c.quota_ia ?? null)}</span>
                     <Link href={`/pme/admin/code/${c.code}`} className="block min-h-12 content-center font-semibold text-agri underline">
-                      Choisir les modèles
+                      Choisir les modèles et l&apos;IA
                     </Link>
                     <span className="block font-mono text-sm break-all text-slate-500">
                       https://{hote}/pme/inscription?code={c.code}

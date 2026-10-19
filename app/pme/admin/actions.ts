@@ -89,3 +89,28 @@ export async function definirModelesEntreprise(entrepriseId: string, formData: F
   }
   redirect("/pme/admin");
 }
+
+/** Lit la limite de créations IA : null = suivre le code (ou valeur par défaut), sinon un nombre entre 0 et 1000. */
+function lireChoixQuota(formData: FormData): number | null {
+  if (formData.get("mode") !== "nombre") return null;
+  const brut = String(formData.get("quota") ?? "").trim();
+  const quota = Number(brut);
+  return brut && Number.isInteger(quota) ? Math.min(1000, Math.max(0, quota)) : null;
+}
+
+export async function definirQuotaCode(code: string, formData: FormData) {
+  const supabase = await exigerAdmin();
+  await supabase.from("codes_invitation").update({ quota_ia: lireChoixQuota(formData) }).eq("code", code);
+  redirect("/pme/admin");
+}
+
+export async function definirQuotaEntreprise(entrepriseId: string, formData: FormData) {
+  const supabase = await exigerAdmin();
+  if (uuidValide(entrepriseId)) {
+    await supabase.rpc("pme_definir_quota_entreprise", {
+      p_entreprise: entrepriseId,
+      p_quota: lireChoixQuota(formData),
+    });
+  }
+  redirect("/pme/admin");
+}

@@ -25,6 +25,7 @@ export default function ConfidentialitePage() {
             "Votre compte : adresse e-mail et mot de passe (enregistré chiffré, personne ne peut le lire).",
             "Votre entreprise : nom, activité, adresse, téléphone, e-mail, RCCM, logo, couleur et, le code d'invitation utilisé à l'inscription et le statut de votre inscription (en attente, validée ou refusée).",
             "Votre activité : opérations de caisse, catégories, projets, tâches et documents que vous créez, domaines suivis et annonces enregistrées dans « Opportunités ».",
+            "Vos affiches et logos IA : la description que vous écrivez et l'image obtenue, ainsi que le nombre de créations du mois.",
           ],
         },
         {
@@ -39,6 +40,7 @@ export default function ConfidentialitePage() {
             "Votre caisse, vos projets et le contenu de vos documents : vous seul. Chaque compte est isolé, un autre utilisateur ne peut pas les voir.",
             "Pour suivre les partenariats, l'équipe AGRIKEY voit le nom, la ville et l'activité de votre entreprise, l'e-mail de votre compte (pour valider votre inscription), sa date d'inscription, le code d'invitation utilisé et si l'outil est utilisé (oui ou non, nombre de documents créés). Le partenaire dont vous avez utilisé le code peut recevoir ces mêmes informations, uniquement pour les entreprises inscrites avec son code.",
             "Les données sont hébergées par des prestataires techniques sur des serveurs situés hors du Mali : Supabase (base de données et connexion) et Vercel (site web). Ils agissent pour notre compte et n'utilisent pas vos données pour eux-mêmes.",
+            "Quand vous créez une affiche ou un logo, votre description et les informations de votre entreprise choisies pour l'image (nom, activité, téléphone, adresse, couleur, logo) sont envoyées aux services d'intelligence artificielle d'Anthropic (Claude) et, si vous demandez une photo, d'OpenAI, aux États-Unis. Ils ne servent qu'à créer l'image. Votre caisse, vos projets et vos documents ne leur sont jamais envoyés.",
           ],
         },
         {
