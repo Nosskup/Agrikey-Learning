@@ -4,6 +4,12 @@
 // Pour changer un prix, modifier « montant » (en FCFA). La durée est fixée dans
 // la fonction SQL pme_activer_abonnement (1 mois ou 1 an).
 
+/**
+ * Abonnements visibles dans l'application (bandeau « Passez à Premium », page Abonnement,
+ * lien dans Mon compte). Masqués pour l'instant : passer à true pour les afficher.
+ */
+export const ABONNEMENTS_VISIBLES = false;
+
 export type CodeFormule = "premium_mois" | "premium_an";
 
 export type Formule = {
