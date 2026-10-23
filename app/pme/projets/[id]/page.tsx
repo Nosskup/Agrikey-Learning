@@ -6,7 +6,12 @@ import { uuidValide } from "@/lib/pme/validation";
 import BoutonSupprimer from "@/components/pme/BoutonSupprimer";
 import Depliable from "@/components/pme/Depliable";
 import { ajouterTache, modifierProjet, supprimerProjet } from "../actions";
-import BarreProgression from "../BarreProgression";
+import AnneauAvancement from "../AnneauAvancement";
+import RythmeProjet from "../RythmeProjet";
+import TableauTaches from "../TableauTaches";
+import FriseProjet from "../FriseProjet";
+import { calculerRythme, compterTaches } from "@/lib/pme/avancement";
+import { carte } from "@/components/pme/styles";
 import FormulaireProjet from "../FormulaireProjet";
 import FormulaireTache from "../FormulaireTache";
 import LigneTache from "../LigneTache";
@@ -15,8 +20,23 @@ export const metadata = { title: "Projet" };
 
 const ORDRE_STATUT = { en_cours: 0, a_faire: 1, termine: 2 } as const;
 
-export default async function ProjetPage({ params }: { params: Promise<{ id: string }> }) {
+const VUES = [
+  { code: "liste", libelle: "☰ Liste" },
+  { code: "tableau", libelle: "▦ Tableau" },
+  { code: "frise", libelle: "⏱ Frise" },
+] as const;
+type Vue = (typeof VUES)[number]["code"];
+
+export default async function ProjetPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ vue?: string }>;
+}) {
   const { id } = await params;
+  const { vue: vueDemandee } = await searchParams;
+  const vue: Vue = VUES.some((v) => v.code === vueDemandee) ? (vueDemandee as Vue) : "liste";
   if (!uuidValide(id)) notFound();
 
   const { supabase } = await exigerEntreprise();
@@ -40,8 +60,9 @@ export default async function ProjetPage({ params }: { params: Promise<{ id: str
 
   // Tâches en cours, puis à faire, puis terminées (tri stable : l'échéance reste respectée).
   const liste = [...(taches ?? [])].sort((a, b) => ORDRE_STATUT[a.statut] - ORDRE_STATUT[b.statut]);
-  const terminees = liste.filter((t) => t.statut === "termine").length;
   const jour = aujourdhui();
+  const compte = compterTaches(liste, jour);
+  const rythme = calculerRythme(projet, compte, jour);
 
   return (
     <div className="space-y-6">
@@ -62,14 +83,50 @@ export default async function ProjetPage({ params }: { params: Promise<{ id: str
 
       {projet.description && <p className="text-base text-slate-700">{projet.description}</p>}
 
-      <BarreProgression terminees={terminees} total={liste.length} />
+      {/* Vue d'ensemble : où en est le projet, et va-t-il au bon rythme ? */}
+      {liste.length > 0 && (
+        <section className={`${carte} space-y-5 p-5`} aria-label="Avancement du projet">
+          <AnneauAvancement compte={compte} />
+          {rythme ? (
+            <div className="border-t border-slate-100 pt-4">
+              <RythmeProjet rythme={rythme} />
+            </div>
+          ) : (
+            <p className="border-t border-slate-100 pt-4 text-sm text-slate-500">
+              Ajoutez une date de début et de fin au projet pour savoir s&apos;il avance au bon rythme.
+            </p>
+          )}
+        </section>
+      )}
 
-      <section className="space-y-2">
-        <h2 className="text-xl font-black text-marine">Tâches</h2>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-black text-marine">Tâches</h2>
+          {liste.length > 0 && (
+            <nav aria-label="Affichage des tâches" className="flex rounded-2xl bg-slate-100 p-1">
+              {VUES.map((v) => (
+                <Link
+                  key={v.code}
+                  href={`/pme/projets/${projet.id}${v.code === "liste" ? "" : `?vue=${v.code}`}`}
+                  aria-current={vue === v.code ? "page" : undefined}
+                  className={`flex min-h-11 items-center rounded-xl px-3 text-sm font-bold ${
+                    vue === v.code ? "bg-white text-marine shadow-sm" : "text-slate-500"
+                  }`}
+                >
+                  {v.libelle}
+                </Link>
+              ))}
+            </nav>
+          )}
+        </div>
         {liste.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-base text-slate-600">
             Aucune tâche. Ajoutez la première ci-dessous.
           </p>
+        ) : vue === "tableau" ? (
+          <TableauTaches taches={liste} jour={jour} />
+        ) : vue === "frise" ? (
+          <FriseProjet projet={projet} taches={liste} jour={jour} />
         ) : (
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {liste.map((t) => (
