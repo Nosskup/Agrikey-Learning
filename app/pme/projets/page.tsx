@@ -4,7 +4,8 @@ import { ajouterJours, aujourdhui, dateNumerique } from "@/lib/pme/format";
 import Depliable from "@/components/pme/Depliable";
 import { boutonPrincipal } from "@/components/pme/styles";
 import { ajouterTache, creerProjet } from "./actions";
-import BarreProgression from "./BarreProgression";
+import BarreStatuts from "./BarreStatuts";
+import { VERDICTS, calculerRythme, compterTaches } from "@/lib/pme/avancement";
 import FormulaireProjet from "./FormulaireProjet";
 import FormulaireTache from "./FormulaireTache";
 import LigneTache from "./LigneTache";
@@ -93,10 +94,9 @@ export default async function ProjetsPage({
         )}
         {listeProjets.map((p) => {
           const tachesDuProjet = listeTaches.filter((t) => t.projet_id === p.id);
-          const terminees = tachesDuProjet.filter((t) => t.statut === "termine").length;
-          const enRetard = tachesDuProjet.some(
-            (t) => t.statut !== "termine" && t.echeance !== null && t.echeance < jour
-          );
+          const compte = compterTaches(tachesDuProjet, jour);
+          const rythme = calculerRythme(p, compte, jour);
+          const verdict = rythme ? VERDICTS[rythme.verdict] : null;
 
           return (
             <Link
@@ -111,9 +111,20 @@ export default async function ProjetsPage({
                     {p.date_debut ? dateNumerique(p.date_debut) : "…"} → {p.date_fin ? dateNumerique(p.date_fin) : "…"}
                   </p>
                 )}
-                {enRetard && <p className="text-base font-bold text-red-700">⚠️ Tâche en retard</p>}
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {verdict && (
+                    <span className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${verdict.classe}`}>
+                      {verdict.icone} {verdict.libelle}
+                    </span>
+                  )}
+                  {compte.enRetard > 0 && (
+                    <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-sm font-bold text-red-800">
+                      ⚠️ {compte.enRetard} tâche{compte.enRetard > 1 ? "s" : ""} en retard
+                    </span>
+                  )}
+                </div>
               </div>
-              <BarreProgression terminees={terminees} total={tachesDuProjet.length} />
+              <BarreStatuts compte={compte} />
             </Link>
           );
         })}

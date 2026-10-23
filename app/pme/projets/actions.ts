@@ -161,3 +161,15 @@ export async function supprimerTache(id: string, projetId: string) {
 
   redirect(uuidValide(projetId) ? `/pme/projets/${projetId}` : "/pme/projets");
 }
+
+const STATUTS_TACHE = ["a_faire", "en_cours", "termine"] as const;
+
+/** Déplace une tâche dans une autre colonne du tableau (à faire, en cours, terminé). */
+export async function changerStatutTache(id: string, statut: string) {
+  const { supabase, user } = await utilisateurConnecte();
+  if (!user) redirect("/pme/connexion");
+  if (!uuidValide(id) || !STATUTS_TACHE.includes(statut as (typeof STATUTS_TACHE)[number])) return;
+
+  await supabase.from("taches").update({ statut }).eq("id", id);
+  refresh();
+}
