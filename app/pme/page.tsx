@@ -5,6 +5,7 @@ import BoutonInstallation from "@/components/pme/Installation";
 import { bornesDuMois, formatFCFA, nomDuMois } from "@/lib/pme/format";
 import Icone, { type NomIcone } from "@/components/pme/Icones";
 import { carte } from "@/components/pme/styles";
+import { ABONNEMENTS_VISIBLES } from "@/lib/pme/formules";
 import { iaDisponible } from "@/lib/pme/ia";
 
 export const metadata = { title: { absolute: "AGRIKEY PME — Gérez votre entreprise simplement" } };
@@ -117,7 +118,7 @@ export default async function TableauDeBord() {
         <div className="relative">
           <p className="flex items-center justify-between text-base text-slate-200">
             Bonjour,
-            {premium && (
+            {ABONNEMENTS_VISIBLES && premium && (
               <Link href="/pme/abonnement" className="rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-black text-amber-950">
                 PREMIUM
               </Link>
@@ -147,7 +148,7 @@ export default async function TableauDeBord() {
 
       <BoutonInstallation />
 
-      {!premium && (
+      {ABONNEMENTS_VISIBLES && !premium && (
         <Link
           href="/pme/abonnement"
           className={`${carte} flex items-center gap-4 p-4 hover:border-amber-200 active:scale-[0.99]`}

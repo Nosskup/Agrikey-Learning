@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { utilisateurConnecte } from "@/lib/pme/session";
 import { boutonSecondaire } from "@/components/pme/styles";
+import { ABONNEMENTS_VISIBLES } from "@/lib/pme/formules";
 import FormulaireSuppression from "./FormulaireSuppression";
 
 export const metadata = { title: "Mon compte" };
@@ -36,12 +37,14 @@ export default async function ComptePage() {
         )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-black text-marine">Abonnement</h2>
-        <Link href="/pme/abonnement" className={boutonSecondaire}>
-          ⭐ Mon abonnement et mes paiements
-        </Link>
-      </section>
+      {ABONNEMENTS_VISIBLES && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-black text-marine">Abonnement</h2>
+          <Link href="/pme/abonnement" className={boutonSecondaire}>
+            ⭐ Mon abonnement et mes paiements
+          </Link>
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-xl font-black text-marine">Mot de passe</h2>
