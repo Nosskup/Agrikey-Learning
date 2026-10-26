@@ -35,8 +35,11 @@ function LigneRemplie({ ligne, variables }: { ligne: string; variables: Record<s
 }
 
 function TableauLignes({ donnees, total }: { donnees: DonneesDocument; total: string }) {
+  // Sur téléphone, police un peu plus petite pour que les montants tiennent dans la feuille ;
+  // si l'écran est vraiment étroit, le tableau défile plutôt que de déborder.
   return (
-    <table className="w-full border-collapse text-base">
+    <div className="overflow-x-auto">
+    <table className="w-full border-collapse text-sm sm:text-base">
       <thead>
         <tr className="border-y-2 border-slate-900 text-left">
           <th className="py-2 pr-2">Désignation</th>
@@ -64,6 +67,7 @@ function TableauLignes({ donnees, total }: { donnees: DonneesDocument; total: st
         </tr>
       </tfoot>
     </table>
+    </div>
   );
 }
 
