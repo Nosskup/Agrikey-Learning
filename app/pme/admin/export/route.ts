@@ -12,6 +12,7 @@ type EntrepriseInscrite = {
   inscrite_le: string;
   active_30_jours: boolean;
   documents: number;
+  archivee_le?: string | null;
 };
 
 // Liste des entreprises inscrites en CSV (Excel), réservée aux administrateurs.
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   const { data } = await supabase.rpc("pme_liste_entreprises");
   const liste = ((data ?? []) as EntrepriseInscrite[]).filter(
-    (e) => !filtre || (e.code_partenaire ?? "AUCUN") === filtre
+    (e) => !e.archivee_le && (!filtre || (e.code_partenaire ?? "AUCUN") === filtre)
   );
 
   const cellule = (valeur: string) => `"${valeur.replace(/"/g, '""')}"`;
