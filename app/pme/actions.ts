@@ -242,12 +242,20 @@ export async function enregistrerEntreprise(
   }
   champs.logo_url = logoUrl || null;
 
-  const { error } = await supabase
+  // Mise à jour simple : l'entreprise existe déjà (créée à l'inscription). Un « upsert » passerait
+  // par une insertion, que la base refuse sans code d'invitation.
+  const { data, error } = await supabase
     .from("entreprises")
-    .upsert({ user_id: user.id, ...champs }, { onConflict: "user_id" });
+    .update(champs)
+    .eq("user_id", user.id)
+    .select("id");
 
   if (error) {
+    console.error("Enregistrement de l'entreprise impossible :", error.message);
     return { erreur: "L'enregistrement a échoué. Vérifiez votre connexion et réessayez." };
+  }
+  if (!data?.length) {
+    redirect("/pme/bienvenue");
   }
 
   refresh();
