@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { estAdmin, utilisateurConnecte } from "@/lib/pme/session";
 import BoutonSupprimer from "@/components/pme/BoutonSupprimer";
 import { boutonSecondaire } from "@/components/pme/styles";
-import { basculerCode, changerStatut } from "./actions";
+import { archiverCode, archiverEntreprise, basculerCode, changerStatut } from "./actions";
 import FormulaireCode from "./FormulaireCode";
 import { resumerModeles } from "@/lib/pme/modeles";
 import { QUOTA_IA_DEFAUT, resumerQuota } from "@/lib/pme/creations";
@@ -26,6 +26,7 @@ type EntrepriseInscrite = {
   modeles_autorises: string[] | null;
   quota_ia?: number | null;
   creations_ia_mois?: number;
+  archivee_le?: string | null;
 };
 type CodeInvitation = {
   code: string;
@@ -34,6 +35,7 @@ type CodeInvitation = {
   max_inscriptions: number | null;
   modeles_autorises: string[] | null;
   quota_ia?: number | null;
+  archive_le?: string | null;
 };
 
 const STATUTS = {
@@ -80,21 +82,34 @@ export default async function AdminPmePage({
       supabase.from("codes_invitation").select("*").order("created_at"),
     ]);
 
-  const lignes = (data ?? []) as Ligne[];
-  const toutes = (liste ?? []) as EntrepriseInscrite[];
-  const codes = (codesData ?? []) as CodeInvitation[];
+  const tousLesCodes = (codesData ?? []) as CodeInvitation[];
+  // Les codes et les entreprises archivés sont rangés dans « Archives » : on ne les montre pas ici.
+  const codesArchives = new Set(tousLesCodes.filter((c) => c.archive_le).map((c) => c.code));
+  const codes = tousLesCodes.filter((c) => !c.archive_le);
+  const lignes = ((data ?? []) as Ligne[]).filter((l) => !codesArchives.has(l.code_partenaire));
+  const inscrites = (liste ?? []) as EntrepriseInscrite[];
+  const toutes = inscrites.filter((e) => !e.archivee_le);
+  const nbArchives = inscrites.length - toutes.length + codesArchives.size;
   // Limite IA effective d'un membre : la sienne, sinon celle de son code, sinon la valeur par défaut.
   const quotaMembre = (e: EntrepriseInscrite) =>
     e.quota_ia ?? codes.find((c) => c.code === e.code_partenaire)?.quota_ia ?? QUOTA_IA_DEFAUT;
   const enAttente = toutes.filter((e) => e.statut === "en_attente");
   const entreprises = toutes.filter((e) => !filtre || (e.code_partenaire ?? "AUCUN") === filtre);
-  const utilisations = (c: string) => toutes.filter((e) => e.code_partenaire === c).length;
+  const utilisations = (c: string) => inscrites.filter((e) => e.code_partenaire === c).length;
   const total = lignes.reduce((t, l) => t + Number(l.entreprises), 0);
   const hote = (await headers()).get("host") ?? "agrikey-learning.vercel.app";
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-black text-marine">Administration</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-black text-marine">Administration</h1>
+        <Link
+          href="/pme/admin/archives"
+          className="min-h-12 content-center rounded-xl border border-slate-300 bg-white px-4 text-base font-semibold text-marine"
+        >
+          🗄️ Archives ({nbArchives})
+        </Link>
+      </div>
 
       {(error || erreurListe || erreurCodes) && (
         <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-base font-semibold text-red-700">
@@ -252,6 +267,14 @@ export default async function AdminPmePage({
                     >
                       Modèles et IA{e.modeles_autorises || e.quota_ia != null ? " (personnalisés)" : ""}
                     </Link>
+                    {e.statut !== "valide" && (
+                      <BoutonSupprimer
+                        action={archiverEntreprise.bind(null, e.entreprise_id, true)}
+                        question={`Archiver « ${e.nom} » ? Le compte reste désactivé et part dans les Archives, d'où vous pourrez le restaurer.`}
+                        libelle="🗄️ Archiver"
+                        className="mt-1"
+                      />
+                    )}
                   </td>
                 </tr>
               ))}
@@ -325,14 +348,21 @@ export default async function AdminPmePage({
                         libelle="Désactiver ce code"
                       />
                     ) : (
-                      <form action={basculerCode.bind(null, c.code, true)}>
-                        <button
-                          type="submit"
-                          className="flex min-h-12 items-center justify-center rounded-xl bg-agri px-4 text-base font-bold whitespace-nowrap text-white hover:bg-agri-fonce"
-                        >
-                          Activer ce code
-                        </button>
-                      </form>
+                      <div className="space-y-2">
+                        <form action={basculerCode.bind(null, c.code, true)}>
+                          <button
+                            type="submit"
+                            className="flex min-h-12 items-center justify-center rounded-xl bg-agri px-4 text-base font-bold whitespace-nowrap text-white hover:bg-agri-fonce"
+                          >
+                            Activer ce code
+                          </button>
+                        </form>
+                        <BoutonSupprimer
+                          action={archiverCode.bind(null, c.code, true)}
+                          question={`Archiver le code ${c.code} ? Il part dans les Archives ; les comptes déjà inscrits ne sont pas touchés.`}
+                          libelle="🗄️ Archiver"
+                        />
+                      </div>
                     )}
                   </td>
                 </tr>

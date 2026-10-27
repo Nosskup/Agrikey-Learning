@@ -114,3 +114,39 @@ export async function definirQuotaEntreprise(entrepriseId: string, formData: For
   }
   redirect("/pme/admin");
 }
+
+// ---------------------------------------------------------------------
+// Archives : ranger les comptes désactivés et les codes qui ne servent plus
+// ---------------------------------------------------------------------
+
+export async function archiverEntreprise(entrepriseId: string, archiver: boolean) {
+  const supabase = await exigerAdmin();
+  if (uuidValide(entrepriseId)) {
+    await supabase.rpc("pme_archiver_entreprise", { p_entreprise: entrepriseId, p_archiver: archiver });
+  }
+  refresh();
+}
+
+export async function supprimerEntrepriseDefinitivement(entrepriseId: string) {
+  const supabase = await exigerAdmin();
+  if (uuidValide(entrepriseId)) {
+    await supabase.rpc("pme_supprimer_entreprise", { p_entreprise: entrepriseId });
+  }
+  refresh();
+}
+
+/** Un code archivé est aussi désactivé : plus personne ne peut s'inscrire avec. */
+export async function archiverCode(code: string, archiver: boolean) {
+  const supabase = await exigerAdmin();
+  await supabase
+    .from("codes_invitation")
+    .update(archiver ? { archive_le: new Date().toISOString(), actif: false } : { archive_le: null })
+    .eq("code", code);
+  refresh();
+}
+
+export async function supprimerCode(code: string) {
+  const supabase = await exigerAdmin();
+  await supabase.rpc("pme_supprimer_code", { p_code: code });
+  refresh();
+}
