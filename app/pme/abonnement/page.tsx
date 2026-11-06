@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { estPremium, exigerEntreprise } from "@/lib/pme/session";
+import { estAdmin, estPremium, exigerEntreprise } from "@/lib/pme/session";
 import { dateLongue, formatFCFA } from "@/lib/pme/format";
 import { carte } from "@/components/pme/styles";
 import Icone from "@/components/pme/Icones";
 import { AVANTAGES_PREMIUM, FORMULES, formuleParCode } from "@/lib/pme/formules";
-import { MODE_PAIEMENT, NOM_FOURNISSEUR } from "@/lib/pme/paiement";
+import { modePaiement, nomFournisseur } from "@/lib/pme/paiement";
+import { diagnosticLigdicash } from "@/lib/ligdicash";
 import BoutonPayer from "./BoutonPayer";
 
 export const metadata = { title: "Abonnement" };
@@ -24,7 +25,11 @@ export default async function AbonnementPage({
   searchParams: Promise<{ [cle: string]: string | string[] | undefined }>;
 }) {
   const { annule } = await searchParams;
-  const { supabase } = await exigerEntreprise();
+  const { supabase, user } = await exigerEntreprise();
+  const NOM_FOURNISSEUR = nomFournisseur();
+  const MODE_PAIEMENT = modePaiement();
+  const admin = await estAdmin(supabase, user.id);
+  const diagnostic = admin ? diagnosticLigdicash() : null;
 
   const [premium, { data: abonnement }, { data: paiements }] = await Promise.all([
     estPremium(supabase),
@@ -42,6 +47,26 @@ export default async function AbonnementPage({
 
   return (
     <div className="space-y-5">
+      {/* Réservé aux administrateurs : ce que le serveur voit de la configuration du paiement. */}
+      {diagnostic && (
+        <div className="space-y-1 rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200">
+          <p className="font-black text-marine">Configuration du paiement (visible des administrateurs seulement)</p>
+          <p>
+            Service utilisé : <strong>{NOM_FOURNISSEUR}</strong>
+          </p>
+          <p>
+            {diagnostic.cle ? "✅" : "❌"} LIGDICASH_API_KEY · {diagnostic.jeton ? "✅" : "❌"}{" "}
+            {diagnostic.nomJeton ?? "LIGDICASH_AUTH_TOKEN"} · {diagnostic.serviceRole ? "✅" : "❌"} SUPABASE_SERVICE_ROLE_KEY
+          </p>
+          {NOM_FOURNISSEUR !== "LigdiCash" && (
+            <p>
+              Pour passer à LigdiCash : les deux variables LigdiCash doivent être définies dans Vercel pour
+              l&apos;environnement « Production », avec exactement ces noms, puis il faut redéployer le site.
+            </p>
+          )}
+        </div>
+      )}
+
       {MODE_PAIEMENT === "test" && (
         <p className="flex items-start gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
           <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-xs font-black text-amber-950">TEST</span>
