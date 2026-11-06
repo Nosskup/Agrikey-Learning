@@ -3,7 +3,9 @@ import { exigerEntreprise } from "@/lib/pme/session";
 import { dateLongue } from "@/lib/pme/format";
 import { boutonPrincipal, boutonSecondaire, carte } from "@/components/pme/styles";
 import Icone, { type NomIcone } from "@/components/pme/Icones";
-import { verifierPaiement, type ResultatVerification } from "@/lib/pme/paydunya";
+import { verifierPaiement } from "@/lib/pme/paydunya";
+import { verifierPaiementDuMembre, type ResultatVerification } from "@/lib/pme/paiement";
+import { uuidValide } from "@/lib/pme/validation";
 
 export const metadata = { title: "Paiement" };
 
@@ -30,20 +32,28 @@ const MESSAGES: Record<ResultatVerification, { icone: NomIcone; teinte: string; 
     icone: "retour",
     teinte: "bg-red-50 text-red-600",
     titre: "Paiement introuvable",
-    texte: "Nous n'avons pas pu vérifier ce paiement. Si vous avez été débité, contactez AGRIKEY avec votre reçu PayDunya.",
+    texte: "Nous n'avons pas pu vérifier ce paiement. Si vous avez été débité, contactez AGRIKEY avec le reçu de votre paiement.",
   },
 };
 
-/** Page de retour après PayDunya : le paiement est revérifié auprès de PayDunya avant d'afficher quoi que ce soit. */
+/** Page de retour après le paiement : il est revérifié auprès du service de paiement avant d'afficher quoi que ce soit. */
 export default async function RetourPaiementPage({
   searchParams,
 }: {
   searchParams: Promise<{ [cle: string]: string | string[] | undefined }>;
 }) {
-  const { token } = await searchParams;
-  const { supabase } = await exigerEntreprise();
+  const { token, paiement } = await searchParams;
+  const { supabase, user } = await exigerEntreprise();
 
-  const resultat = typeof token === "string" ? await verifierPaiement(token) : "invalide";
+  // LigdiCash revient avec notre numéro de paiement ; PayDunya avec son jeton.
+  const resultat: ResultatVerification =
+    typeof paiement === "string" && uuidValide(paiement)
+      ? await verifierPaiementDuMembre(paiement, user.id)
+      : typeof token === "string"
+        ? await verifierPaiement(token)
+        : "invalide";
+  const actualiser =
+    typeof paiement === "string" ? `paiement=${encodeURIComponent(paiement)}` : `token=${encodeURIComponent(String(token))}`;
   const message = MESSAGES[resultat];
 
   const { data: abonnement } =
@@ -65,7 +75,7 @@ export default async function RetourPaiementPage({
       </section>
 
       {resultat === "en_attente" ? (
-        <Link href={`/pme/abonnement/retour?token=${encodeURIComponent(String(token))}`} className={boutonPrincipal}>
+        <Link href={`/pme/abonnement/retour?${actualiser}`} className={boutonPrincipal}>
           Actualiser
         </Link>
       ) : (
