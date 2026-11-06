@@ -49,6 +49,15 @@ export function diagnosticLigdicash() {
     nomJeton: process.env.LIGDICASH_AUTH_TOKEN ? "LIGDICASH_AUTH_TOKEN" : process.env.LIGDICASH_API_TOKEN ? "LIGDICASH_API_TOKEN" : null,
     mode: modeLigdicash(),
     serviceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    // Noms (jamais les valeurs) des variables qui ressemblent à des clés LigdiCash :
+    // permet de repérer une faute de nom ou une variable vide.
+    nomsProches: Object.keys(process.env)
+      .filter((nom) => /ligdi|apikey|api_key|auth_token|api_token/i.test(nom))
+      .map((nom) => `${JSON.stringify(nom)}${process.env[nom]?.trim() ? "" : " (vide)"}`)
+      .sort(),
+    // Fournies par Vercel : quel déploiement répond.
+    environnement: process.env.VERCEL_ENV ?? "inconnu",
+    version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "inconnue",
   };
 }
 

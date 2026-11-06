@@ -58,6 +58,15 @@ export default async function AbonnementPage({
             {diagnostic.cle ? "✅" : "❌"} LIGDICASH_API_KEY · {diagnostic.jeton ? "✅" : "❌"}{" "}
             {diagnostic.nomJeton ?? "LIGDICASH_AUTH_TOKEN"} · {diagnostic.serviceRole ? "✅" : "❌"} SUPABASE_SERVICE_ROLE_KEY
           </p>
+          <p>
+            Déploiement : <strong>{diagnostic.environnement}</strong> · version {diagnostic.version}
+          </p>
+          <p>
+            Variables proches trouvées :{" "}
+            <span className="font-mono break-all">
+              {diagnostic.nomsProches.length ? diagnostic.nomsProches.join(", ") : "aucune"}
+            </span>
+          </p>
           {NOM_FOURNISSEUR !== "LigdiCash" && (
             <p>
               Pour passer à LigdiCash : les deux variables LigdiCash doivent être définies dans Vercel pour
