@@ -16,9 +16,9 @@ const moyensPaiement = [
     id: "paydunya",
     nom: "Paiement mobile / carte",
     description:
-      "Orange Money, Moov Money, carte bancaire (via PayDunya)",
+      "Orange Money, Moov Money et autres moyens de paiement mobile",
     disponible: true,
-    symbole: "PD",
+    symbole: "MM",
   },
 ];
 
@@ -170,7 +170,7 @@ function PaiementContent() {
         return;
       }
 
-      // Redirection vers la page de paiement PayDunya
+      // Redirection vers la page de paiement du prestataire
       // (Orange Money, Moov Money, carte bancaire...).
       window.location.href = resultat.checkoutUrl;
     } catch (err) {
@@ -270,7 +270,7 @@ function PaiementContent() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Paiement sécurisé via PayDunya.
+                  Paiement sécurisé par mobile money.
                 </p>
               </div>
 
@@ -363,7 +363,7 @@ function PaiementContent() {
                   </p>
 
                   <p className="mt-1 text-sm leading-6 text-blue-800">
-                    Vous êtes redirigé vers PayDunya, notre
+                    Vous êtes redirigé vers la page de notre
                     prestataire de paiement, pour saisir vos
                     informations. AGRIKEY n'a jamais accès à vos
                     identifiants de paiement.
@@ -456,7 +456,7 @@ function PaiementContent() {
                 </button>
 
                 <p className="mt-4 text-center text-xs leading-5 text-slate-400">
-                  Vous serez redirigé vers PayDunya pour finaliser
+                  Vous serez redirigé vers la page de paiement pour finaliser
                   le paiement en toute sécurité.
                 </p>
 

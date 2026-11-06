@@ -1,24 +1,31 @@
 // Choix du service de paiement de l'abonnement AGRIKEY PME.
 //
 // LigdiCash dès que ses clés sont configurées, sinon PayDunya.
-// PAIEMENT_PME=paydunya force PayDunya.
+// PAIEMENT_PME=paydunya force PayDunya. Relu à chaque appel.
 
 import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { ligdicashConfigure, modeLigdicash } from "@/lib/ligdicash";
 import type { Formule } from "./formules";
 import { creerFactureAbonnement, MODE_PAYDUNYA, paydunyaConfigure, verifierPaiement, type ResultatVerification } from "./paydunya";
-import { creerFactureLigdicash, ligdicashConfigure, MODE_LIGDICASH, verifierPaiementLigdicash } from "./ligdicash";
+import { creerFactureLigdicash, verifierPaiementLigdicash } from "./ligdicash";
 
 export type { ResultatVerification };
 
-export const FOURNISSEUR: "ligdicash" | "paydunya" =
-  process.env.PAIEMENT_PME !== "paydunya" && ligdicashConfigure() ? "ligdicash" : "paydunya";
+export function fournisseur(): "ligdicash" | "paydunya" {
+  return process.env.PAIEMENT_PME?.trim() !== "paydunya" && ligdicashConfigure() ? "ligdicash" : "paydunya";
+}
 
-export const NOM_FOURNISSEUR = FOURNISSEUR === "ligdicash" ? "LigdiCash" : "PayDunya";
-export const MODE_PAIEMENT = FOURNISSEUR === "ligdicash" ? MODE_LIGDICASH : MODE_PAYDUNYA;
+export function nomFournisseur(): string {
+  return fournisseur() === "ligdicash" ? "LigdiCash" : "PayDunya";
+}
+
+export function modePaiement(): "test" | "live" {
+  return fournisseur() === "ligdicash" ? modeLigdicash() : MODE_PAYDUNYA;
+}
 
 export function paiementConfigure(): boolean {
-  return FOURNISSEUR === "ligdicash" ? ligdicashConfigure() : paydunyaConfigure();
+  return fournisseur() === "ligdicash" ? ligdicashConfigure() : paydunyaConfigure();
 }
 
 export function creerFacture(
@@ -27,7 +34,7 @@ export function creerFacture(
   nomEntreprise: string,
   origine: string
 ) {
-  return FOURNISSEUR === "ligdicash"
+  return fournisseur() === "ligdicash"
     ? creerFactureLigdicash(utilisateur, formule, nomEntreprise, origine)
     : creerFactureAbonnement(utilisateur, formule, nomEntreprise, origine);
 }

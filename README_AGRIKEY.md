@@ -544,7 +544,7 @@ Ajouter un domaine : `lib/opportunites/domaines.ts`. Ajouter un site utile : `li
 
 Mise en place : Supabase > SQL Editor, exécuter `supabase/migrations/20261020_pme_abonnements.sql`
 (tables `pme_paiements` et `pme_abonnements`, fonctions `pme_activer_abonnement` et `pme_est_premium`).
-Les paiements des formations (`payments`, `/api/payments/...`) ne sont pas touchés.
+Les paiements des formations (`payments`, `/api/payments/...`) passent aussi par LigdiCash quand ses clés sont configurées (voir « Paiement LigdiCash »).
 
 Variables d'environnement (Vercel > Settings > Environment Variables), les mêmes que pour les formations :
 `PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`.
@@ -579,5 +579,8 @@ Mise en place : exécuter `supabase/migrations/20261023_pme_ligdicash.sql` (colo
   Dès que les deux clés LigdiCash sont présentes, LigdiCash remplace PayDunya (`PAIEMENT_PME=paydunya` pour revenir à PayDunya).
 - `LIGDICASH_MODE` absent = compte d'intégration (paiements réels quand même : LigdiCash n'a pas de bac à sable) ; `live` = compte de production.
 - Adresses à déclarer chez LigdiCash : callback `https://<site>/api/pme/ligdicash`, retour `/pme/abonnement/retour`, annulation `/pme/abonnement`.
-- Code : `lib/pme/ligdicash.ts` (création, vérification), `lib/pme/paiement.ts` (choix du service), `app/api/pme/ligdicash/route.ts` (notifications JSON et formulaire, identifiées par `custom_data.transaction_id`, puis revérifiées avec le jeton de création).
+- Code : `lib/ligdicash.ts` (client commun : création, vérification, diagnostic), `lib/pme/ligdicash.ts` (abonnement PME), `lib/paiement-formation-ligdicash.ts` (formations), `lib/pme/paiement.ts` (choix du service pour l'abonnement).
+- Une seule adresse de notification pour tout le site : `app/api/pme/ligdicash/route.ts` (JSON et formulaire, identifiés par `custom_data.transaction_id` ; un paiement PME est un uuid de `pme_paiements`, sinon c'est un paiement de formation de `payments`), puis revérification avec le jeton de création.
+- Formations : `/api/payments/create-invoice` crée la facture LigdiCash et range le jeton dans `payments.transaction_id` ; `/api/payments/ligdicash?paiement=` revérifie au retour ; `confirm_payment` inscrit l'apprenant.
+- La page `/pme/abonnement` affiche aux personnes admin les variables détectées par le serveur.
 - Tant que `ABONNEMENTS_VISIBLES` est à `false`, seules les personnes admin voient `/pme/abonnement`, ce qui permet de tester le paiement.

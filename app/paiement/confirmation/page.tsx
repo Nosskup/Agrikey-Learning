@@ -10,6 +10,8 @@ type Statut = "verification" | "paye" | "attente" | "erreur";
 function ConfirmationPaiementContent() {
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
+  // Présent au retour de LigdiCash : on fait revérifier le paiement par le serveur.
+  const paiementId = searchParams.get("paiement");
 
   const [statut, setStatut] = useState<Statut>("verification");
   const [essais, setEssais] = useState(0);
@@ -32,6 +34,12 @@ function ConfirmationPaiementContent() {
         return;
       }
 
+      if (paiementId) {
+        await fetch(`/api/payments/ligdicash?paiement=${encodeURIComponent(paiementId)}`, {
+          cache: "no-store",
+        }).catch(() => null);
+      }
+
       const { data: paiement } = await supabase
         .from("payments")
         .select("status")
@@ -48,7 +56,7 @@ function ConfirmationPaiementContent() {
         return;
       }
 
-      // Le webhook PayDunya peut mettre quelques secondes à
+      // La confirmation du paiement peut mettre quelques secondes à
       // confirmer le paiement. On réessaie plusieurs fois avant
       // de dire à l'apprenant que c'est encore en cours.
       if (essais < 6) {
@@ -65,8 +73,7 @@ function ConfirmationPaiementContent() {
     return () => {
       annule = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId, essais]);
+  }, [courseId, paiementId, essais]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-16">

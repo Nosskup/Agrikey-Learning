@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { lireDonneePerso, traiterNotificationLigdicash } from "@/lib/pme/ligdicash";
+import { lireDonneePerso } from "@/lib/ligdicash";
+import { traiterNotificationPme } from "@/lib/pme/ligdicash";
+import { verifierPaiementFormation } from "@/lib/paiement-formation-ligdicash";
 
 /**
  * Lit notre transaction_id dans la notification LigdiCash. LigdiCash envoie deux POST
@@ -11,7 +13,7 @@ function lireTransactionId(texte: string): string | null {
     const corps = JSON.parse(texte) as { custom_data?: unknown; external_id?: unknown };
     const id = lireDonneePerso(corps.custom_data, "transaction_id");
     if (id) return id;
-    return typeof corps.external_id === "string" ? corps.external_id : null;
+    return typeof corps.external_id === "string" && corps.external_id ? corps.external_id : null;
   } catch {
     // Formulaire : on regroupe les champs custom_data[i][...] par indice.
   }
@@ -32,14 +34,15 @@ function lireTransactionId(texte: string): string | null {
       // ignoré
     }
   }
-  return formulaire.get("external_id");
+  return formulaire.get("external_id") || null;
 }
 
 /**
- * Notification de paiement envoyée par LigdiCash (callback_url) pour l'abonnement AGRIKEY PME.
+ * Notification de paiement LigdiCash (callback_url), pour l'abonnement AGRIKEY PME
+ * comme pour les formations AGRIKEY Learning.
  *
  * On n'en retient que notre transaction_id : le statut réel est toujours revérifié
- * auprès de LigdiCash avec le jeton enregistré à la création (voir traiterNotificationLigdicash).
+ * auprès de LigdiCash avec le jeton enregistré à la création.
  */
 export async function POST(request: NextRequest) {
   const texte = await request.text();
@@ -49,11 +52,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false }, { status: 400 });
   }
 
-  const resultat = await traiterNotificationLigdicash(transactionId);
+  const resultat = (await traiterNotificationPme(transactionId)) ?? (await verifierPaiementFormation(transactionId));
   return NextResponse.json({ success: resultat !== "invalide", resultat }, { status: resultat === "invalide" ? 400 : 200 });
 }
 
 // Permet de vérifier depuis un navigateur que l'adresse répond.
 export async function GET() {
-  return NextResponse.json({ success: true, service: "AGRIKEY PME" });
+  return NextResponse.json({ success: true, service: "AGRIKEY" });
 }
