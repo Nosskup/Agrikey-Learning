@@ -24,7 +24,9 @@ export default function ConditionsPage() {
         {
           titre: "Prix",
           paragraphes: [
-            "L'offre de base est gratuite. Des fonctions avancées pourront devenir payantes : leur prix sera affiché clairement avant tout paiement, et vous resterez libre de ne pas les prendre.",
+            "Après la validation de votre inscription, vous profitez d'une période gratuite : sa durée dépend du code d'invitation utilisé (1 mois en général, davantage si votre association a négocié une offre).",
+            "Ensuite, pour continuer à utiliser AGRIKEY PME, un abonnement est nécessaire : 2 500 FCFA par mois ou 25 000 FCFA par an, payé par mobile money via LigdiCash. Il n'y a pas de renouvellement automatique : vous choisissez de renouveler ou non. Un abonnement pris pendant la période gratuite commence à la fin de celle-ci.",
+            "Sans abonnement en cours, l'accès à l'outil est suspendu, mais vos données ne sont pas effacées : vous les retrouvez dès le paiement, et vous pouvez à tout moment les télécharger ou les supprimer depuis « Mon compte ».",
           ],
         },
         {

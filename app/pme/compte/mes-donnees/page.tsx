@@ -18,7 +18,7 @@ function Titre({ children }: { children: React.ReactNode }) {
 
 // Toutes les données AGRIKEY PME de l'utilisateur, en document A4 lisible (PDF par l'impression).
 export default async function MesDonneesPage() {
-  const { supabase, user, entreprise } = await exigerEntreprise();
+  const { supabase, user, entreprise } = await exigerEntreprise({ memeSansAcces: true });
 
   const [{ data: categories }, { data: operations }, { data: projets }, { data: taches }, { data: documents }, { data: details }, { data: creations }] =
     await Promise.all([

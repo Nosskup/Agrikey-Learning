@@ -24,8 +24,10 @@ export default async function AbonnementPage({
 }: {
   searchParams: Promise<{ [cle: string]: string | string[] | undefined }>;
 }) {
-  const { annule } = await searchParams;
-  const { supabase, user } = await exigerEntreprise();
+  const { annule, expire } = await searchParams;
+  const { supabase, user, acces } = await exigerEntreprise({ memeSansAcces: true });
+  const maintenant = new Date().toISOString();
+  const enEssai = Boolean(acces?.finEssai && acces.finEssai > maintenant);
   const NOM_FOURNISSEUR = nomFournisseur();
   const MODE_PAIEMENT = modePaiement();
   const admin = await estAdmin(supabase, user.id);
@@ -76,12 +78,23 @@ export default async function AbonnementPage({
         </div>
       )}
 
-      {MODE_PAIEMENT === "test" && (
+      {admin && MODE_PAIEMENT === "test" && (
         <p className="flex items-start gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
           <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-xs font-black text-amber-950">TEST</span>
           {NOM_FOURNISSEUR === "LigdiCash"
             ? "Compte d'intégration LigdiCash : les paiements sont réels (LigdiCash n'a pas de mode bac à sable)."
             : "Mode test PayDunya : aucun argent réel n'est débité. Utilisez les comptes de test fournis par PayDunya."}
+        </p>
+      )}
+
+      {expire === "1" && acces && !acces.actif && (
+        <p role="alert" className="rounded-2xl bg-amber-50 px-4 py-3 text-base font-semibold text-amber-900 ring-1 ring-amber-200">
+          Votre période d&apos;accès est terminée. Abonnez-vous pour retrouver votre caisse, vos projets et vos documents :
+          rien n&apos;a été effacé. Vous pouvez toujours télécharger vos données depuis{" "}
+          <Link href="/pme/compte" className="underline">
+            Mon compte
+          </Link>
+          .
         </p>
       )}
 
@@ -97,17 +110,33 @@ export default async function AbonnementPage({
           {premium && abonnement ? (
             <>
               <h1 className="mt-1 flex items-center gap-2 text-3xl font-black tracking-tight">
-                Premium
+                Abonné
                 <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-sm font-black text-amber-950">Actif</span>
               </h1>
               <p className="mt-1 text-base text-slate-200">
-                {formuleParCode(abonnement.formule)?.titre ?? "Premium"} · jusqu&apos;au {dateLongue(abonnement.actif_jusqua)}
+                {formuleParCode(abonnement.formule)?.titre ?? "Abonnement"} · jusqu&apos;au {dateLongue(abonnement.actif_jusqua)}
+                {enEssai && acces?.finEssai && <> (après votre période gratuite, qui se termine le {dateLongue(acces.finEssai)})</>}
+              </p>
+            </>
+          ) : enEssai && acces?.finEssai ? (
+            <>
+              <h1 className="mt-1 text-3xl font-black tracking-tight">Période gratuite</h1>
+              <p className="mt-1 text-base text-slate-200">
+                Jusqu&apos;au {dateLongue(acces.finEssai)}. Abonnez-vous dès maintenant : votre abonnement commencera à la
+                fin de la période gratuite, sans perdre un seul jour.
+              </p>
+            </>
+          ) : acces && !acces.actif ? (
+            <>
+              <h1 className="mt-1 text-3xl font-black tracking-tight">Accès terminé</h1>
+              <p className="mt-1 text-base text-slate-200">
+                Choisissez une formule pour retrouver tout votre outil. Vos données sont conservées.
               </p>
             </>
           ) : (
             <>
-              <h1 className="mt-1 text-3xl font-black tracking-tight">Gratuit</h1>
-              <p className="mt-1 text-base text-slate-200">Passez à Premium pour aller plus loin avec votre entreprise.</p>
+              <h1 className="mt-1 text-3xl font-black tracking-tight">Mon abonnement</h1>
+              <p className="mt-1 text-base text-slate-200">Choisissez la formule qui vous convient.</p>
             </>
           )}
         </div>
@@ -115,7 +144,7 @@ export default async function AbonnementPage({
 
       {/* Avantages */}
       <section className={`${carte} p-5`}>
-        <h2 className="text-lg font-black text-marine">Avec Premium</h2>
+        <h2 className="text-lg font-black text-marine">Avec l&apos;abonnement</h2>
         <ul className="mt-3 space-y-2.5">
           {AVANTAGES_PREMIUM.map((avantage) => (
             <li key={avantage} className="flex items-start gap-3 text-base text-slate-700">
@@ -136,7 +165,7 @@ export default async function AbonnementPage({
             <p className="text-base font-bold text-amber-900">{FORMULE_ESSAI.titre}</p>
             <p className="mt-1 text-3xl font-black tracking-tight text-marine">
               {formatFCFA(FORMULE_ESSAI.montant)}{" "}
-              <span className="text-base font-semibold text-slate-500">{FORMULE_ESSAI.periode} de Premium</span>
+              <span className="text-base font-semibold text-slate-500">{FORMULE_ESSAI.periode} d&apos;abonnement</span>
             </p>
             <p className="mt-1 text-sm text-amber-900">
               Visible des administrateurs seulement : un vrai paiement à petit prix, pour vérifier tout le parcours.

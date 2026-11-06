@@ -15,7 +15,7 @@ export default function FormulaireInscription({ codeInitial }: { codeInitial: st
       <div>
         <h1 className="text-3xl font-black text-marine">Créez votre compte</h1>
         <p className="mt-2 text-base text-slate-600">
-          Gratuit. Gérez votre caisse, vos projets et vos documents depuis votre téléphone.
+          Période d&apos;essai gratuite. Gérez votre caisse, vos projets et vos documents depuis votre téléphone.
         </p>
       </div>
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { estPremium, exigerEntreprise, utilisateurConnecte } from "@/lib/pme/session";
+import { estPremium, exigerEntreprise, joursRestants, utilisateurConnecte } from "@/lib/pme/session";
 import Presentation from "./Presentation";
 import BoutonInstallation from "@/components/pme/Installation";
 import { bornesDuMois, formatFCFA, nomDuMois } from "@/lib/pme/format";
@@ -23,8 +23,9 @@ export default async function TableauDeBord() {
   const { user } = await utilisateurConnecte();
   if (!user) return <Presentation />;
 
-  const { supabase, entreprise } = await exigerEntreprise();
+  const { supabase, entreprise, acces } = await exigerEntreprise();
   const { debut, fin } = bornesDuMois();
+  const joursEssai = acces?.finEssai && acces.actif ? joursRestants(acces.finEssai) || null : null;
 
   const [operations, tachesAFaire, documents, premium] = await Promise.all([
     supabase
@@ -120,7 +121,7 @@ export default async function TableauDeBord() {
             Bonjour,
             {ABONNEMENTS_VISIBLES && premium && (
               <Link href="/pme/abonnement" className="rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-black text-amber-950">
-                PREMIUM
+                ABONNÉ
               </Link>
             )}
           </p>
@@ -148,17 +149,24 @@ export default async function TableauDeBord() {
 
       <BoutonInstallation />
 
-      {ABONNEMENTS_VISIBLES && !premium && (
+      {/* Période gratuite en cours : rappel des jours restants (plus visible dans la dernière semaine). */}
+      {ABONNEMENTS_VISIBLES && !premium && joursEssai !== null && (
         <Link
           href="/pme/abonnement"
-          className={`${carte} flex items-center gap-4 p-4 hover:border-amber-200 active:scale-[0.99]`}
+          className={`${carte} flex items-center gap-4 p-4 active:scale-[0.99] ${
+            joursEssai <= 7 ? "ring-2 ring-amber-300" : "hover:border-amber-200"
+          }`}
         >
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
-            <Icone nom="etoile" plein className="h-6 w-6" />
+            <Icone nom="horloge" className="h-6 w-6" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-base font-black text-marine">Passez à Premium</span>
-            <span className="block text-sm text-slate-500">À partir de 2 500 FCFA par mois, par Orange Money ou Moov</span>
+            <span className="block text-base font-black text-marine">
+              Période gratuite : {joursEssai} jour{joursEssai > 1 ? "s" : ""} restant{joursEssai > 1 ? "s" : ""}
+            </span>
+            <span className="block text-sm text-slate-500">
+              Abonnez-vous dès 2 500 FCFA par mois : l&apos;abonnement commence à la fin de la période gratuite.
+            </span>
           </span>
           <Icone nom="fleche" className="h-5 w-5 shrink-0 text-slate-400" />
         </Link>

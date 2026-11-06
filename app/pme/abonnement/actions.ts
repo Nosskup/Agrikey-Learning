@@ -9,7 +9,7 @@ import type { EtatFormulaire } from "../actions";
 
 /** Prépare la facture (LigdiCash ou PayDunya) de la formule choisie et envoie vers la page de paiement. */
 export async function payerAbonnement(_etat: EtatFormulaire, formData: FormData): Promise<EtatFormulaire> {
-  const { supabase, user, entreprise } = await exigerEntreprise();
+  const { supabase, user, entreprise } = await exigerEntreprise({ memeSansAcces: true });
   const admin = await estAdmin(supabase, user.id);
   // Abonnements masqués : seuls les administrateurs peuvent tester le paiement.
   if (!ABONNEMENTS_VISIBLES && !admin) redirect("/pme");

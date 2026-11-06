@@ -584,3 +584,13 @@ Mise en place : exécuter `supabase/migrations/20261023_pme_ligdicash.sql` (colo
 - Formations : `/api/payments/create-invoice` crée la facture LigdiCash et range le jeton dans `payments.transaction_id` ; `/api/payments/ligdicash?paiement=` revérifie au retour ; `confirm_payment` inscrit l'apprenant.
 - La page `/pme/abonnement` affiche aux personnes admin les variables détectées par le serveur.
 - Tant que `ABONNEMENTS_VISIBLES` est à `false`, seules les personnes admin voient `/pme/abonnement`, ce qui permet de tester le paiement.
+
+### Accès payant (période gratuite, puis abonnement)
+
+Mise en place : exécuter `supabase/migrations/20261025_pme_acces_payant.sql`.
+
+- Après la validation de l'inscription : période gratuite (`codes_invitation.mois_offerts`, 1 mois par défaut, LIJEMA = 3) ; un admin peut fixer une autre date de fin pour un membre (`entreprises.fin_essai`).
+- Ensuite, abonnement (2 500 F/mois, 25 000 F/an, LigdiCash). Un abonnement pris pendant l'essai commence à la fin de celui-ci (`pme_activer_abonnement`).
+- Sans accès : `exigerEntreprise()` renvoie vers `/pme/abonnement?expire=1`. Restent ouvertes : l'abonnement, la page de retour du paiement, « Mon compte » et le téléchargement des données (`exigerEntreprise({ memeSansAcces: true })`). Les admins ont toujours accès.
+- Filet de sécurité dans la base : trigger `pme_lecture_seule` (ajouts et modifications refusés sans accès ; suppressions permises) sur caisse, projets, tâches, documents et créations IA.
+- `pme_mon_acces()` pour l'application, `pme_liste_entreprises()` renvoie `fin_essai` et `abonnement_jusqua` pour l'administration.

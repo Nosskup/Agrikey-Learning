@@ -27,6 +27,8 @@ type EntrepriseInscrite = {
   quota_ia?: number | null;
   creations_ia_mois?: number;
   archivee_le?: string | null;
+  fin_essai?: string | null;
+  abonnement_jusqua?: string | null;
 };
 type CodeInvitation = {
   code: string;
@@ -36,6 +38,7 @@ type CodeInvitation = {
   modeles_autorises: string[] | null;
   quota_ia?: number | null;
   archive_le?: string | null;
+  mois_offerts?: number | null;
 };
 
 const STATUTS = {
@@ -43,6 +46,15 @@ const STATUTS = {
   valide: { libelle: "Validée", classe: "bg-green-100 text-agri-fonce" },
   refuse: { libelle: "Refusée", classe: "bg-red-100 text-red-800" },
 } as const;
+
+/** Accès d'un membre, en une ligne : abonnement, période gratuite ou accès terminé. */
+function resumerAcces(finEssai: string | null, abonnement: string | null): string {
+  const maintenant = new Date().toISOString();
+  const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR");
+  if (abonnement && abonnement > maintenant) return `💳 Abonné jusqu'au ${date(abonnement)}`;
+  if (finEssai && finEssai > maintenant) return `🎁 Gratuit jusqu'au ${date(finEssai)}`;
+  return "⛔ Accès terminé (abonnement à payer)";
+}
 
 const puce = "min-h-12 content-center rounded-full border px-4 text-base font-semibold";
 
@@ -241,6 +253,9 @@ export default async function AdminPmePage({
                     <span className="block text-slate-500">
                       {[e.email, e.activite, e.ville].filter(Boolean).join(" · ")}
                     </span>
+                    {e.statut === "valide" && e.fin_essai !== undefined && (
+                      <span className="block text-slate-600">{resumerAcces(e.fin_essai ?? null, e.abonnement_jusqua ?? null)}</span>
+                    )}
                     {e.creations_ia_mois !== undefined && (
                       <span className="block text-slate-600">
                         🎨 {e.creations_ia_mois} / {quotaMembre(e)} créations IA ce mois
@@ -320,6 +335,7 @@ export default async function AdminPmePage({
                     {c.libelle && <span className="block text-slate-500">{c.libelle}</span>}
                     <span className="block text-slate-600">📄 {resumerModeles(c.modeles_autorises)}</span>
                     <span className="block text-slate-600">🎨 {resumerQuota(c.quota_ia ?? null)}</span>
+                    <span className="block text-slate-600">🎁 {c.mois_offerts ?? 1} mois gratuit{(c.mois_offerts ?? 1) > 1 ? "s" : ""}</span>
                     <Link href={`/pme/admin/code/${c.code}`} className="block min-h-12 content-center font-semibold text-agri underline">
                       Choisir les modèles et l&apos;IA
                     </Link>

@@ -14,7 +14,7 @@ const MESSAGES: Record<ResultatVerification, { icone: NomIcone; teinte: string; 
     icone: "verifie",
     teinte: "bg-green-50 text-agri",
     titre: "Paiement reçu, merci !",
-    texte: "Votre abonnement Premium est actif.",
+    texte: "Votre abonnement est actif.",
   },
   en_attente: {
     icone: "horloge",
@@ -43,7 +43,7 @@ export default async function RetourPaiementPage({
   searchParams: Promise<{ [cle: string]: string | string[] | undefined }>;
 }) {
   const { token, paiement } = await searchParams;
-  const { supabase, user } = await exigerEntreprise();
+  const { supabase, user } = await exigerEntreprise({ memeSansAcces: true });
 
   // LigdiCash revient avec notre numéro de paiement ; PayDunya avec son jeton.
   const resultat: ResultatVerification =
