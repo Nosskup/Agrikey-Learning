@@ -570,3 +570,14 @@ Avant de passer en paiements réels : effacer les abonnements de test
 - Code : `lib/pme/ia.ts` (consignes, appels, nettoyage du SVG), `lib/pme/creations.ts` (formats), `app/pme/affiches/`.
 - Le SVG final (photo et logo intégrés) est stocké dans `creations_ia.svg` et servi par `/pme/affiches/[id]/image` avec une CSP stricte ; le navigateur le convertit en PNG pour le télécharger ou le partager.
 - Limite par mois (migration `20261021_pme_creations_ia.sql`) : celle du membre, sinon celle de son code, sinon 10 ; 0 = module fermé. Réglable dans l'administration (« Modèles et IA »). Le compteur `utilisations_ia` est séparé : supprimer une création ne rend pas le crédit, une création échouée ou interrompue est recréditée.
+
+### Paiement LigdiCash (abonnement PME)
+
+Mise en place : exécuter `supabase/migrations/20261023_pme_ligdicash.sql` (colonne `fournisseur` de `pme_paiements`).
+
+- Variables Vercel : `LIGDICASH_API_KEY`, `LIGDICASH_AUTH_TOKEN` (ou `LIGDICASH_API_TOKEN`), et `SUPABASE_SERVICE_ROLE_KEY`.
+  Dès que les deux clés LigdiCash sont présentes, LigdiCash remplace PayDunya (`PAIEMENT_PME=paydunya` pour revenir à PayDunya).
+- `LIGDICASH_MODE` absent = compte d'intégration (paiements réels quand même : LigdiCash n'a pas de bac à sable) ; `live` = compte de production.
+- Adresses à déclarer chez LigdiCash : callback `https://<site>/api/pme/ligdicash`, retour `/pme/abonnement/retour`, annulation `/pme/abonnement`.
+- Code : `lib/pme/ligdicash.ts` (création, vérification), `lib/pme/paiement.ts` (choix du service), `app/api/pme/ligdicash/route.ts` (notifications JSON et formulaire, identifiées par `custom_data.transaction_id`, puis revérifiées avec le jeton de création).
+- Tant que `ABONNEMENTS_VISIBLES` est à `false`, seules les personnes admin voient `/pme/abonnement`, ce qui permet de tester le paiement.

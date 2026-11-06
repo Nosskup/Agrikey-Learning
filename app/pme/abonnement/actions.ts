@@ -2,26 +2,27 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { exigerEntreprise } from "@/lib/pme/session";
+import { estAdmin, exigerEntreprise } from "@/lib/pme/session";
 import { ABONNEMENTS_VISIBLES, formuleParCode } from "@/lib/pme/formules";
-import { creerFactureAbonnement, paydunyaConfigure } from "@/lib/pme/paydunya";
+import { creerFacture, paiementConfigure } from "@/lib/pme/paiement";
 import type { EtatFormulaire } from "../actions";
 
-/** Prépare la facture PayDunya de la formule choisie et envoie vers la page de paiement. */
+/** Prépare la facture (LigdiCash ou PayDunya) de la formule choisie et envoie vers la page de paiement. */
 export async function payerAbonnement(_etat: EtatFormulaire, formData: FormData): Promise<EtatFormulaire> {
-  if (!ABONNEMENTS_VISIBLES) redirect("/pme");
-  const { user, entreprise } = await exigerEntreprise();
+  const { supabase, user, entreprise } = await exigerEntreprise();
+  // Abonnements masqués : seuls les administrateurs peuvent tester le paiement.
+  if (!ABONNEMENTS_VISIBLES && !(await estAdmin(supabase, user.id))) redirect("/pme");
 
   const formule = formuleParCode(String(formData.get("formule") ?? ""));
   if (!formule) {
     return { erreur: "Choisissez une formule." };
   }
-  if (!paydunyaConfigure()) {
+  if (!paiementConfigure()) {
     return { erreur: "Le paiement n'est pas encore activé. Contactez AGRIKEY." };
   }
 
   const origine = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const resultat = await creerFactureAbonnement(
+  const resultat = await creerFacture(
     { id: user.id, email: user.email },
     formule,
     entreprise.nom,

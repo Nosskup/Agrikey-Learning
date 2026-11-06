@@ -4,7 +4,7 @@ import { dateLongue, formatFCFA } from "@/lib/pme/format";
 import { carte } from "@/components/pme/styles";
 import Icone from "@/components/pme/Icones";
 import { AVANTAGES_PREMIUM, FORMULES, formuleParCode } from "@/lib/pme/formules";
-import { MODE_PAYDUNYA } from "@/lib/pme/paydunya";
+import { MODE_PAIEMENT, NOM_FOURNISSEUR } from "@/lib/pme/paiement";
 import BoutonPayer from "./BoutonPayer";
 
 export const metadata = { title: "Abonnement" };
@@ -37,15 +37,17 @@ export default async function AbonnementPage({
       .returns<Paiement[]>(),
   ]);
 
-  // Les paiements abandonnés sur la page PayDunya restent « en attente » : inutile de les montrer.
+  // Les paiements abandonnés sur la page de paiement restent « en attente » : inutile de les montrer.
   const historique = (paiements ?? []).filter((p) => p.statut !== "en_attente");
 
   return (
     <div className="space-y-5">
-      {MODE_PAYDUNYA === "test" && (
+      {MODE_PAIEMENT === "test" && (
         <p className="flex items-start gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
           <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-xs font-black text-amber-950">TEST</span>
-          Mode test PayDunya : aucun argent réel n&apos;est débité. Utilisez les comptes de test fournis par PayDunya.
+          {NOM_FOURNISSEUR === "LigdiCash"
+            ? "Compte d'intégration LigdiCash : les paiements sont réels (LigdiCash n'a pas de mode bac à sable)."
+            : "Mode test PayDunya : aucun argent réel n'est débité. Utilisez les comptes de test fournis par PayDunya."}
         </p>
       )}
 
@@ -122,7 +124,7 @@ export default async function AbonnementPage({
           );
         })}
         <p className="px-2 text-center text-sm text-slate-500">
-          Paiement sécurisé par PayDunya : Orange Money, Moov Money ou carte bancaire. Pas de renouvellement automatique.
+          Paiement sécurisé par {NOM_FOURNISSEUR} : Orange Money, Moov Money ou carte bancaire. Pas de renouvellement automatique.
         </p>
       </section>
 

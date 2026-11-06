@@ -14,7 +14,7 @@ export default function BoutonPayer({ formule, libelle, principal }: { formule: 
       <input type="hidden" name="formule" value={formule} />
       <Message etat={etat} />
       <button type="submit" disabled={enCours} className={principal ? boutonPrincipal : boutonSecondaire}>
-        {enCours ? "Ouverture de PayDunya…" : libelle}
+        {enCours ? "Ouverture de la page de paiement…" : libelle}
       </button>
     </form>
   );
