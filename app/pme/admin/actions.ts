@@ -165,16 +165,38 @@ export async function definirMoisOfferts(code: string, formData: FormData) {
   redirect("/pme/admin");
 }
 
-/** Date de fin de la période gratuite d'un membre (vide = celle de son code). */
+/**
+ * Accès d'un membre : date limite choisie, prolongation rapide (+1 ou +3 mois à partir
+ * de la date actuelle, ou d'aujourd'hui si elle est passée), coupure immédiate, ou retour
+ * à la règle de son code.
+ */
 export async function definirFinEssai(entrepriseId: string, formData: FormData) {
   const supabase = await exigerAdmin();
-  const date = String(formData.get("fin_essai") ?? "").trim();
-  if (uuidValide(entrepriseId) && (date === "" || /^\d{4}-\d{2}-\d{2}$/.test(date))) {
-    await supabase.rpc("pme_definir_fin_essai", {
-      p_entreprise: entrepriseId,
-      // Fin de journée à Bamako (UTC).
-      p_fin: date ? `${date}T23:59:59Z` : null,
-    });
+  if (!uuidValide(entrepriseId)) redirect("/pme/admin");
+
+  const choix = String(formData.get("choix") ?? "date");
+  let fin: string | null;
+
+  if (choix === "code") {
+    fin = null;
+  } else if (choix === "couper") {
+    fin = new Date(Date.now() - 60_000).toISOString();
+  } else if (choix === "plus1" || choix === "plus3") {
+    const { data } = await supabase.rpc("pme_liste_entreprises");
+    const ligne = ((data ?? []) as { entreprise_id: string; fin_essai?: string | null }[]).find(
+      (e) => e.entreprise_id === entrepriseId
+    );
+    const actuelle = ligne?.fin_essai ? new Date(ligne.fin_essai) : null;
+    const depart = actuelle && actuelle.getTime() > Date.now() ? actuelle : new Date();
+    depart.setUTCMonth(depart.getUTCMonth() + (choix === "plus1" ? 1 : 3));
+    fin = depart.toISOString();
+  } else {
+    const date = String(formData.get("fin_essai") ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) redirect(`/pme/admin/entreprise/${entrepriseId}?acces=date`);
+    // Fin de journée à Bamako (UTC).
+    fin = `${date}T23:59:59Z`;
   }
-  redirect("/pme/admin");
+
+  const { error } = await supabase.rpc("pme_definir_fin_essai", { p_entreprise: entrepriseId, p_fin: fin });
+  redirect(`/pme/admin/entreprise/${entrepriseId}?acces=${error ? "erreur" : "ok"}`);
 }
