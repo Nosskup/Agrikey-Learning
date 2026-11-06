@@ -3,18 +3,20 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { estAdmin, exigerEntreprise } from "@/lib/pme/session";
-import { ABONNEMENTS_VISIBLES, formuleParCode } from "@/lib/pme/formules";
+import { ABONNEMENTS_VISIBLES, FORMULE_ESSAI, formuleParCode } from "@/lib/pme/formules";
 import { creerFacture, paiementConfigure } from "@/lib/pme/paiement";
 import type { EtatFormulaire } from "../actions";
 
 /** Prépare la facture (LigdiCash ou PayDunya) de la formule choisie et envoie vers la page de paiement. */
 export async function payerAbonnement(_etat: EtatFormulaire, formData: FormData): Promise<EtatFormulaire> {
   const { supabase, user, entreprise } = await exigerEntreprise();
+  const admin = await estAdmin(supabase, user.id);
   // Abonnements masqués : seuls les administrateurs peuvent tester le paiement.
-  if (!ABONNEMENTS_VISIBLES && !(await estAdmin(supabase, user.id))) redirect("/pme");
+  if (!ABONNEMENTS_VISIBLES && !admin) redirect("/pme");
 
   const formule = formuleParCode(String(formData.get("formule") ?? ""));
-  if (!formule) {
+  // La formule d'essai à 100 FCFA est réservée aux administrateurs.
+  if (!formule || (formule.code === FORMULE_ESSAI.code && !admin)) {
     return { erreur: "Choisissez une formule." };
   }
   if (!paiementConfigure()) {

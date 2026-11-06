@@ -10,7 +10,7 @@
  */
 export const ABONNEMENTS_VISIBLES = false;
 
-export type CodeFormule = "premium_mois" | "premium_an";
+export type CodeFormule = "premium_mois" | "premium_an" | "essai_admin";
 
 export type Formule = {
   code: CodeFormule;
@@ -26,6 +26,18 @@ export const FORMULES: Formule[] = [
   { code: "premium_an", titre: "Premium annuel", montant: 25000, periode: "par an", accroche: "2 mois offerts" },
 ];
 
+/**
+ * Formule de test à 100 FCFA, réservée aux administrateurs : LigdiCash n'ayant pas de
+ * bac à sable, elle permet de vérifier un vrai paiement à petit prix (1 jour de Premium,
+ * durée fixée dans pme_activer_abonnement).
+ */
+export const FORMULE_ESSAI: Formule = {
+  code: "essai_admin",
+  titre: "Essai de paiement (admins)",
+  montant: 100,
+  periode: "1 jour",
+};
+
 /** Ce que comprend Premium (texte affiché ; à ajuster selon les fonctions réservées). */
 export const AVANTAGES_PREMIUM = [
   "Documents illimités avec votre logo",
@@ -35,5 +47,5 @@ export const AVANTAGES_PREMIUM = [
 ];
 
 export function formuleParCode(code: string | null | undefined): Formule | undefined {
-  return FORMULES.find((f) => f.code === code);
+  return [...FORMULES, FORMULE_ESSAI].find((f) => f.code === code);
 }
