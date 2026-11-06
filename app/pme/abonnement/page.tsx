@@ -3,7 +3,7 @@ import { estAdmin, estPremium, exigerEntreprise } from "@/lib/pme/session";
 import { dateLongue, formatFCFA } from "@/lib/pme/format";
 import { carte } from "@/components/pme/styles";
 import Icone from "@/components/pme/Icones";
-import { AVANTAGES_PREMIUM, FORMULES, formuleParCode } from "@/lib/pme/formules";
+import { AVANTAGES_PREMIUM, FORMULE_ESSAI, FORMULES, formuleParCode } from "@/lib/pme/formules";
 import { modePaiement, nomFournisseur } from "@/lib/pme/paiement";
 import { diagnosticLigdicash } from "@/lib/ligdicash";
 import BoutonPayer from "./BoutonPayer";
@@ -131,6 +131,21 @@ export default async function AbonnementPage({
       {/* Formules */}
       <section className="space-y-3">
         <h2 className="px-1 text-lg font-black text-marine">{premium ? "Prolonger mon abonnement" : "Choisir une formule"}</h2>
+        {admin && (
+          <div className="rounded-3xl border-2 border-dashed border-amber-300 bg-amber-50 p-5">
+            <p className="text-base font-bold text-amber-900">{FORMULE_ESSAI.titre}</p>
+            <p className="mt-1 text-3xl font-black tracking-tight text-marine">
+              {formatFCFA(FORMULE_ESSAI.montant)}{" "}
+              <span className="text-base font-semibold text-slate-500">{FORMULE_ESSAI.periode} de Premium</span>
+            </p>
+            <p className="mt-1 text-sm text-amber-900">
+              Visible des administrateurs seulement : un vrai paiement à petit prix, pour vérifier tout le parcours.
+            </p>
+            <div className="mt-4">
+              <BoutonPayer formule={FORMULE_ESSAI.code} libelle="Tester le paiement (100 FCFA)" principal={false} />
+            </div>
+          </div>
+        )}
         {FORMULES.map((formule, i) => {
           const miseEnAvant = Boolean(formule.accroche);
           return (
