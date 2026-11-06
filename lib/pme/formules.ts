@@ -2,13 +2,15 @@
 //
 // Le prix payé est toujours lu ici, côté serveur, jamais envoyé par le navigateur.
 // Pour changer un prix, modifier « montant » (en FCFA). La durée est fixée dans
-// la fonction SQL pme_activer_abonnement (1 mois ou 1 an).
+// la fonction SQL pme_activer_abonnement (1 mois ou 1 an). Un paiement fait pendant
+// la période gratuite commence à la fin de celle-ci.
 
 /**
- * Abonnements visibles dans l'application (bandeau « Passez à Premium », page Abonnement,
- * lien dans Mon compte). Masqués pour l'instant : passer à true pour les afficher.
+ * Abonnements visibles dans l'application (page Abonnement, lien dans Mon compte,
+ * rappel de fin de période gratuite). Après la période gratuite offerte par le code
+ * d'invitation, l'abonnement est nécessaire pour continuer à utiliser l'outil.
  */
-export const ABONNEMENTS_VISIBLES = false;
+export const ABONNEMENTS_VISIBLES = true;
 
 export type CodeFormule = "premium_mois" | "premium_an" | "essai_admin";
 
@@ -22,8 +24,8 @@ export type Formule = {
 };
 
 export const FORMULES: Formule[] = [
-  { code: "premium_mois", titre: "Premium mensuel", montant: 2500, periode: "par mois" },
-  { code: "premium_an", titre: "Premium annuel", montant: 25000, periode: "par an", accroche: "2 mois offerts" },
+  { code: "premium_mois", titre: "Abonnement mensuel", montant: 2500, periode: "par mois" },
+  { code: "premium_an", titre: "Abonnement annuel", montant: 25000, periode: "par an", accroche: "2 mois offerts" },
 ];
 
 /**
@@ -38,12 +40,12 @@ export const FORMULE_ESSAI: Formule = {
   periode: "1 jour",
 };
 
-/** Ce que comprend Premium (texte affiché ; à ajuster selon les fonctions réservées). */
+/** Ce que comprend l'abonnement (texte affiché). */
 export const AVANTAGES_PREMIUM = [
-  "Documents illimités avec votre logo",
-  "Alertes sur les nouvelles opportunités de vos domaines",
-  "Exports PDF et CSV de la caisse",
-  "Assistance prioritaire par WhatsApp",
+  "Accès complet : caisse, projets, documents et opportunités",
+  "Devis, factures et reçus en PDF avec votre logo",
+  "Affiches et logos IA, selon votre nombre de créations",
+  "Vos données conservées et téléchargeables à tout moment",
 ];
 
 export function formuleParCode(code: string | null | undefined): Formule | undefined {

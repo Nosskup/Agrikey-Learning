@@ -16,11 +16,33 @@ export type Entreprise = {
   statut: "en_attente" | "valide" | "refuse";
 };
 
+/** Accès du membre : période gratuite, abonnement payé, et s'il peut utiliser l'outil. */
+export type Acces = {
+  actif: boolean;
+  finEssai: string | null;
+  abonnementJusqua: string | null;
+};
+
+/** Jours entiers restants avant une date (0 si elle est passée). */
+export function joursRestants(iso: string): number {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
+}
+
+/** Accès du membre connecté, ou null si la base n'est pas encore à jour (on ne bloque alors personne). */
+export async function lireAcces(supabase: ClientSupabase): Promise<Acces | null> {
+  const { data, error } = await supabase.rpc("pme_mon_acces");
+  const ligne = (data as { actif: boolean; fin_essai: string | null; abonnement_jusqua: string | null }[] | null)?.[0];
+  if (error || !ligne) return null;
+  return { actif: Boolean(ligne.actif), finEssai: ligne.fin_essai, abonnementJusqua: ligne.abonnement_jusqua };
+}
+
 /**
  * Exige un utilisateur connecté qui a déjà renseigné son entreprise.
  * Sinon, redirige vers la connexion ou vers la saisie du nom.
+ * Sans période gratuite ni abonnement en cours, l'outil est bloqué : redirection vers
+ * la page d'abonnement, sauf pour les pages qui restent ouvertes (`memeSansAcces`).
  */
-export async function exigerEntreprise() {
+export async function exigerEntreprise({ memeSansAcces = false }: { memeSansAcces?: boolean } = {}) {
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -47,7 +69,12 @@ export async function exigerEntreprise() {
     redirect("/pme/en-attente");
   }
 
-  return { supabase, user, entreprise };
+  const acces = await lireAcces(supabase);
+  if (acces && !acces.actif && !memeSansAcces) {
+    redirect("/pme/abonnement?expire=1");
+  }
+
+  return { supabase, user, entreprise, acces };
 }
 
 /** Client Supabase et utilisateur connecté (null si déconnecté), pour les actions. */

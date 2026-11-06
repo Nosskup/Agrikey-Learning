@@ -150,3 +150,31 @@ export async function supprimerCode(code: string) {
   await supabase.rpc("pme_supprimer_code", { p_code: code });
   refresh();
 }
+
+// ---------------------------------------------------------------------
+// Période gratuite : mois offerts par un code, date de fin pour un membre
+// ---------------------------------------------------------------------
+
+/** Mois offerts aux membres inscrits avec ce code (vide = 1 mois par défaut). */
+export async function definirMoisOfferts(code: string, formData: FormData) {
+  const supabase = await exigerAdmin();
+  const brut = String(formData.get("mois_offerts") ?? "").trim();
+  const mois = Number(brut);
+  const valeur = brut && Number.isInteger(mois) ? Math.min(60, Math.max(0, mois)) : null;
+  await supabase.from("codes_invitation").update({ mois_offerts: valeur }).eq("code", code);
+  redirect("/pme/admin");
+}
+
+/** Date de fin de la période gratuite d'un membre (vide = celle de son code). */
+export async function definirFinEssai(entrepriseId: string, formData: FormData) {
+  const supabase = await exigerAdmin();
+  const date = String(formData.get("fin_essai") ?? "").trim();
+  if (uuidValide(entrepriseId) && (date === "" || /^\d{4}-\d{2}-\d{2}$/.test(date))) {
+    await supabase.rpc("pme_definir_fin_essai", {
+      p_entreprise: entrepriseId,
+      // Fin de journée à Bamako (UTC).
+      p_fin: date ? `${date}T23:59:59Z` : null,
+    });
+  }
+  redirect("/pme/admin");
+}

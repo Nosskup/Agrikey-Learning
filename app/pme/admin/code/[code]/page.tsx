@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { estAdmin, utilisateurConnecte } from "@/lib/pme/session";
-import { definirModelesCode, definirQuotaCode } from "../../actions";
+import { definirModelesCode, definirMoisOfferts, definirQuotaCode } from "../../actions";
+import { boutonPrincipal, champ } from "@/components/pme/styles";
 import ChoixModeles from "../../ChoixModeles";
 import ChoixQuota from "../../ChoixQuota";
 
@@ -30,6 +31,32 @@ export default async function ModelesCodePage({ params }: { params: Promise<{ co
           précis depuis la liste des entreprises.
         </p>
       </div>
+      <form
+        action={definirMoisOfferts.bind(null, invitation.code)}
+        className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 text-base"
+      >
+        <label htmlFor="mois_offerts" className="block font-semibold text-marine">
+          🎁 Période gratuite : mois offerts après la validation
+        </label>
+        <input
+          id="mois_offerts"
+          name="mois_offerts"
+          type="number"
+          min={0}
+          max={60}
+          inputMode="numeric"
+          defaultValue={invitation.mois_offerts ?? ""}
+          placeholder="1 (par défaut)"
+          className={`${champ} max-w-40`}
+        />
+        <p className="text-slate-500">
+          Vide = 1 mois. Ensuite, l&apos;abonnement est nécessaire pour continuer. S&apos;applique aussi aux membres déjà
+          inscrits avec ce code (sauf date fixée pour un membre).
+        </p>
+        <button type="submit" className={boutonPrincipal}>
+          Enregistrer la période gratuite
+        </button>
+      </form>
       <ChoixModeles action={definirModelesCode.bind(null, invitation.code)} autorises={invitation.modeles_autorises} />
       <ChoixQuota action={definirQuotaCode.bind(null, invitation.code)} quota={invitation.quota_ia ?? null} />
     </div>

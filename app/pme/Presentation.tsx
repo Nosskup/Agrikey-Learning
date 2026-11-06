@@ -95,7 +95,7 @@ export default function Presentation() {
         <div className="relative flex flex-col gap-8 sm:flex-row sm:items-center">
           <div className="space-y-4">
             <p className="flex flex-wrap gap-2 text-sm font-bold">
-              {["Gratuit", "En français", "Sur téléphone"].map((e) => (
+              {["Essai gratuit", "En français", "Sur téléphone"].map((e) => (
                 <span key={e} className="rounded-full bg-white/15 px-3 py-1 ring-1 ring-white/20">
                   {e}
                 </span>
