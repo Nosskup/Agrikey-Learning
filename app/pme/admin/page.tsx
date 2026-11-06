@@ -6,6 +6,7 @@ import BoutonSupprimer from "@/components/pme/BoutonSupprimer";
 import { boutonSecondaire } from "@/components/pme/styles";
 import { archiverCode, archiverEntreprise, basculerCode, changerStatut } from "./actions";
 import FormulaireCode from "./FormulaireCode";
+import { resumerAcces } from "./acces";
 import { resumerModeles } from "@/lib/pme/modeles";
 import { QUOTA_IA_DEFAUT, resumerQuota } from "@/lib/pme/creations";
 
@@ -46,15 +47,6 @@ const STATUTS = {
   valide: { libelle: "Validée", classe: "bg-green-100 text-agri-fonce" },
   refuse: { libelle: "Refusée", classe: "bg-red-100 text-red-800" },
 } as const;
-
-/** Accès d'un membre, en une ligne : abonnement, période gratuite ou accès terminé. */
-function resumerAcces(finEssai: string | null, abonnement: string | null): string {
-  const maintenant = new Date().toISOString();
-  const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR");
-  if (abonnement && abonnement > maintenant) return `💳 Abonné jusqu'au ${date(abonnement)}`;
-  if (finEssai && finEssai > maintenant) return `🎁 Gratuit jusqu'au ${date(finEssai)}`;
-  return "⛔ Accès terminé (abonnement à payer)";
-}
 
 const puce = "min-h-12 content-center rounded-full border px-4 text-base font-semibold";
 
@@ -280,7 +272,7 @@ export default async function AdminPmePage({
                       href={`/pme/admin/entreprise/${e.entreprise_id}`}
                       className="block min-h-12 content-center text-base font-semibold whitespace-nowrap text-agri underline"
                     >
-                      Modèles et IA{e.modeles_autorises || e.quota_ia != null ? " (personnalisés)" : ""}
+                      Accès, modèles et IA
                     </Link>
                     {e.statut !== "valide" && (
                       <BoutonSupprimer
