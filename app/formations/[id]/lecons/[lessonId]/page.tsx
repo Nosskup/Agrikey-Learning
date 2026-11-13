@@ -74,6 +74,9 @@ export default function LessonPage() {
     []
   );
   const [isCompleted, setIsCompleted] = useState(false);
+  // Identifiants des leçons terminées par l'apprenant dans cette formation
+  // (sert au calcul réel de la progression du module et de la formation).
+  const [completedIds, setCompletedIds] = useState<number[]>([]);
   const [hasQuiz, setHasQuiz] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -171,6 +174,8 @@ export default function LessonPage() {
           (item) => item.id
         );
 
+        let allLessonIds: number[] = [];
+
         if (moduleIds.length > 0) {
           const {
             data: courseLessonsData,
@@ -189,6 +194,9 @@ export default function LessonPage() {
           }
 
           setCourseLessons(courseLessonsData || []);
+          allLessonIds = (courseLessonsData || []).map(
+            (item) => item.id
+          );
         }
 
         // Cette leçon possède-t-elle un quiz ? Si oui, on affichera
@@ -228,6 +236,21 @@ export default function LessonPage() {
         }
 
         setIsCompleted(progressData?.completed === true);
+
+        // Leçons terminées de toute la formation (RLS : l'apprenant
+        // ne voit que sa propre progression).
+        if (allLessonIds.length > 0) {
+          const { data: doneData } = await supabase
+            .from("lesson_progress")
+            .select("lesson_id")
+            .eq("user_id", user.id)
+            .eq("completed", true)
+            .in("lesson_id", allLessonIds);
+
+          setCompletedIds(
+            (doneData || []).map((item) => item.lesson_id)
+          );
+        }
       } catch (err) {
         console.error("ERREUR CHARGEMENT LEÇON :", err);
 
@@ -297,6 +320,11 @@ export default function LessonPage() {
       }
 
       setIsCompleted(true);
+      setCompletedIds((previous) =>
+        previous.includes(lessonId)
+          ? previous
+          : [...previous, lessonId]
+      );
     } catch (err) {
       console.error(
         "ERREUR ENREGISTREMENT PROGRESSION :",
@@ -375,6 +403,61 @@ export default function LessonPage() {
     nextLesson !== null &&
     nextLesson.module_id !== lesson.module_id;
 
+  // Section vidéo : affichée AVANT le texte pour une leçon de type « vidéo »,
+  // et APRÈS le texte pour les autres types de leçon.
+  const rawVideoUrl = (lesson.video_url || "").trim();
+  const youtubeEmbedUrl = rawVideoUrl
+    ? getYoutubeEmbedUrl(rawVideoUrl)
+    : null;
+  // Fichier vidéo direct (mp4, webm, ogg) en https uniquement.
+  const isDirectVideo =
+    !youtubeEmbedUrl &&
+    /^https:\/\/\S+\.(mp4|webm|ogg)(\?\S*)?$/i.test(rawVideoUrl);
+  const hasPlayableVideo = !!youtubeEmbedUrl || isDirectVideo;
+
+  // Une leçon de type « vidéo » sans lien (ou avec un lien inutilisable)
+  // affiche « Vidéo bientôt disponible » au lieu d'un lecteur cassé.
+  // Les autres types de leçon n'affichent rien s'il n'y a pas de vidéo.
+  const showVideoPlaceholder =
+    lesson.type === "video" && !hasPlayableVideo;
+
+  const videoSection =
+    hasPlayableVideo || showVideoPlaceholder ? (
+      <section className="mb-8 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-6">
+        <h2 className="mb-4 text-xl font-bold text-slate-900">
+          Vidéo
+        </h2>
+
+        {youtubeEmbedUrl ? (
+          <div className="aspect-video w-full overflow-hidden rounded-xl bg-slate-900">
+            <iframe
+              src={youtubeEmbedUrl}
+              title={`Vidéo - ${lesson.title}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              className="h-full w-full"
+            />
+          </div>
+        ) : isDirectVideo ? (
+          <video controls className="w-full rounded-xl">
+            <source src={rawVideoUrl} />
+            Votre navigateur ne peut pas lire cette vidéo.
+          </video>
+        ) : (
+          <div className="flex aspect-video w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 text-center">
+            <p className="text-lg font-bold text-slate-700">
+              Vidéo bientôt disponible
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Vous pouvez déjà lire le contenu de la leçon
+              ci-dessous.
+            </p>
+          </div>
+        )}
+      </section>
+    ) : null;
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -404,25 +487,47 @@ export default function LessonPage() {
           </h1>
 
           {courseLessons.length > 1 && courseIndex >= 0 && (
-            <div className="mt-5">
-              <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Progression dans la formation</span>
-                <span>
-                  {courseIndex + 1} / {courseLessons.length}
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-green-600 transition-all"
-                  style={{
-                    width: `${((courseIndex + 1) / courseLessons.length) * 100}%`,
-                  }}
-                />
-              </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {[
+                {
+                  label: "Progression du module",
+                  total: lessons.length,
+                  done: lessons.filter((item) =>
+                    completedIds.includes(item.id)
+                  ).length,
+                },
+                {
+                  label: "Progression de la formation",
+                  total: courseLessons.length,
+                  done: courseLessons.filter((item) =>
+                    completedIds.includes(item.id)
+                  ).length,
+                },
+              ].map((bar) => (
+                <div key={bar.label}>
+                  <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-500">
+                    <span>{bar.label}</span>
+                    <span>
+                      {bar.done} / {bar.total} terminée
+                      {bar.done > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="h-full rounded-full bg-green-600 transition-all"
+                      style={{
+                        width: `${bar.total ? (bar.done / bar.total) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
         </div>
+
+        {lesson.type === "video" && videoSection}
 
         {lesson.content && (
           <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
@@ -430,40 +535,7 @@ export default function LessonPage() {
           </section>
         )}
 
-        {lesson.video_url && (
-          <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="mb-4 text-xl font-bold text-slate-900">
-              Vidéo
-            </h2>
-
-            {(() => {
-              const youtubeEmbedUrl = getYoutubeEmbedUrl(
-                lesson.video_url
-              );
-
-              if (youtubeEmbedUrl) {
-                return (
-                  <div className="aspect-video w-full overflow-hidden rounded-xl">
-                    <iframe
-                      src={youtubeEmbedUrl}
-                      title={`Vidéo - ${lesson.title}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      className="h-full w-full"
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <video controls className="w-full rounded-xl">
-                  <source src={lesson.video_url} />
-                  Votre navigateur ne peut pas lire cette vidéo.
-                </video>
-              );
-            })()}
-          </section>
-        )}
+        {lesson.type !== "video" && videoSection}
 
         {lesson.pdf_url && (
           <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
