@@ -62,6 +62,12 @@ function getYoutubeEmbedUrl(url: string): string | null {
   }
 }
 
+type ModuleLock = {
+  module_id: number;
+  blocking_lesson_id: number;
+  blocking_module_title: string;
+};
+
 export default function LessonPage() {
   const params = useParams();
   const router = useRouter();
@@ -77,6 +83,8 @@ export default function LessonPage() {
   // Identifiants des leçons terminées par l'apprenant dans cette formation
   // (sert au calcul réel de la progression du module et de la formation).
   const [completedIds, setCompletedIds] = useState<number[]>([]);
+  // Modules verrouillés pour cet apprenant (quiz d'un module précédent non réussi).
+  const [lockedModules, setLockedModules] = useState<ModuleLock[]>([]);
   const [hasQuiz, setHasQuiz] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -251,6 +259,19 @@ export default function LessonPage() {
             (doneData || []).map((item) => item.lesson_id)
           );
         }
+
+        // Verrouillage des modules par les quiz. Si la fonction n'existe pas
+        // encore côté base, on n'applique simplement aucun verrouillage.
+        const { data: lockData, error: lockError } = await supabase.rpc(
+          "get_course_quiz_lock",
+          { p_course_id: courseId }
+        );
+
+        setLockedModules(
+          !lockError && Array.isArray(lockData)
+            ? (lockData as ModuleLock[])
+            : []
+        );
       } catch (err) {
         console.error("ERREUR CHARGEMENT LEÇON :", err);
 
@@ -379,6 +400,53 @@ export default function LessonPage() {
     );
   }
 
+  const currentLock = lockedModules.find(
+    (item) => item.module_id === lesson.module_id
+  );
+
+  if (currentLock) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+          <div className="rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">
+              🔒
+            </div>
+
+            <h1 className="mt-5 text-2xl font-black text-slate-900">
+              Ce module est verrouillé
+            </h1>
+
+            <p className="mt-3 text-slate-600">
+              Pour accéder à « {module.title} », vous devez d'abord réussir
+              le quiz du module « {currentLock.blocking_module_title} ».
+            </p>
+
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+              <button
+                onClick={() =>
+                  router.push(
+                    `/formations/${courseId}/lecons/${currentLock.blocking_lesson_id}/quiz`
+                  )
+                }
+                className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white hover:bg-green-800"
+              >
+                Passer le quiz
+              </button>
+
+              <button
+                onClick={() => router.push(`/formations/${courseId}`)}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Retour à la formation
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const currentIndex = lessons.findIndex(
     (item) => item.id === lessonId
   );
@@ -394,6 +462,13 @@ export default function LessonPage() {
     courseIndex >= 0 && courseIndex < courseLessons.length - 1
       ? courseLessons[courseIndex + 1]
       : null;
+
+  // Le module suivant est-il verrouillé par un quiz non réussi ?
+  const nextLock = nextLesson
+    ? lockedModules.find(
+        (item) => item.module_id === nextLesson.module_id
+      )
+    : undefined;
 
   const previousChangeDeModule =
     previousLesson !== null &&
@@ -635,7 +710,18 @@ export default function LessonPage() {
             <div />
           )}
 
-          {nextLesson ? (
+          {nextLesson && nextLock ? (
+            <button
+              onClick={() =>
+                router.push(
+                  `/formations/${courseId}/lecons/${nextLock.blocking_lesson_id}/quiz`
+                )
+              }
+              className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700"
+            >
+              🔒 Réussir le quiz pour débloquer le module suivant
+            </button>
+          ) : nextLesson ? (
             <button
               onClick={() =>
                 router.push(
