@@ -37,6 +37,14 @@ type QuizResult = {
   lesson_completed: boolean;
 };
 
+// État des tentatives de l'apprenant pour ce quiz (calculé côté serveur).
+type AttemptStatus = {
+  attempts_used: number;
+  max_attempts: number;
+  best_score: number | null;
+  passed: boolean;
+};
+
 export default function QuizPage() {
   const params = useParams();
 
@@ -54,6 +62,14 @@ export default function QuizPage() {
   const [result, setResult] = useState<QuizResult | null>(null);
 
   const [error, setError] = useState("");
+
+  // null = le serveur ne fournit pas (encore) l'état des tentatives :
+  // la page fonctionne alors comme avant.
+  const [status, setStatus] = useState<AttemptStatus | null>(null);
+
+  // Première leçon du module suivant (null = dernier module).
+  const [nextModuleLessonId, setNextModuleLessonId] =
+    useState<number | null>(null);
 
   useEffect(() => {
     loadQuiz();
@@ -88,6 +104,8 @@ export default function QuizPage() {
       }
 
       setQuiz(quizData);
+
+      await loadStatusAndNextModule(quizData.id);
 
       const { data: questionData, error: questionError } =
         await supabase
@@ -182,6 +200,69 @@ export default function QuizPage() {
     }
   }
 
+  async function refreshStatus(quizId: number) {
+    const { data, error: statusError } = await supabase.rpc(
+      "get_quiz_attempt_status",
+      { p_quiz_id: quizId }
+    );
+
+    if (!statusError && data) {
+      setStatus(data as AttemptStatus);
+    }
+  }
+
+  async function loadStatusAndNextModule(quizId: number) {
+    try {
+      await refreshStatus(quizId);
+
+      const { data: lessonRow } = await supabase
+        .from("lessons")
+        .select("module_id")
+        .eq("id", lessonId)
+        .maybeSingle();
+
+      if (!lessonRow) return;
+
+      const { data: modulesRows } = await supabase
+        .from("modules")
+        .select("id")
+        .eq("course_id", courseId)
+        .order("id", { ascending: true });
+
+      const moduleIds = (modulesRows || []).map((row) => row.id);
+      const position = moduleIds.indexOf(lessonRow.module_id);
+      const nextModuleId =
+        position >= 0 && position < moduleIds.length - 1
+          ? moduleIds[position + 1]
+          : null;
+
+      if (nextModuleId === null) {
+        setNextModuleLessonId(null);
+        return;
+      }
+
+      const { data: nextLessonRow } = await supabase
+        .from("lessons")
+        .select("id")
+        .eq("module_id", nextModuleId)
+        .order("order_number", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      setNextModuleLessonId(nextLessonRow ? nextLessonRow.id : null);
+    } catch (err) {
+      // Non bloquant : le quiz reste utilisable.
+      console.error("Erreur état du quiz :", err);
+    }
+  }
+
+  function scrollToTop() {
+    // Laisse React afficher le résultat, puis remonte en douceur.
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 50);
+  }
+
   function handleSelect(
     questionId: number,
     answerId: number
@@ -249,6 +330,8 @@ export default function QuizPage() {
         throw rpcError;
       }
 
+      await refreshStatus(quiz.id);
+
       setResult({
         score: data.score,
         total_questions:
@@ -258,16 +341,30 @@ export default function QuizPage() {
         lesson_completed:
           data.lesson_completed,
       });
+
+      // Le résultat s'affiche en haut de la page : on y remonte.
+      scrollToTop();
     } catch (err: any) {
       console.error(
         "Erreur validation quiz :",
         err
       );
 
-      setError(
-        err?.message ||
-          "Une erreur est survenue lors de la validation du quiz."
-      );
+      const message: string = err?.message || "";
+
+      if (message.includes("Nombre maximal de tentatives")) {
+        setError(
+          "Vous avez utilisé toutes vos tentatives pour ce quiz. Contactez AGRIKEY pour demander une réinitialisation."
+        );
+        await refreshStatus(quiz.id);
+      } else {
+        setError(
+          message ||
+            "Une erreur est survenue lors de la validation du quiz."
+        );
+      }
+
+      scrollToTop();
     } finally {
       setSubmitting(false);
     }
@@ -346,6 +443,22 @@ export default function QuizPage() {
     );
   }
 
+  const maxAttempts = status ? status.max_attempts : null;
+  const attemptsUsed = status ? status.attempts_used : 0;
+  const attemptsLeft =
+    maxAttempts !== null ? Math.max(maxAttempts - attemptsUsed, 0) : null;
+  const attemptsExhausted = attemptsLeft !== null && attemptsLeft <= 0;
+  const alreadyPassed = !!status?.passed;
+
+  const nextModuleHref =
+    nextModuleLessonId !== null
+      ? `/formations/${courseId}/lecons/${nextModuleLessonId}`
+      : `/formations/${courseId}`;
+  const nextModuleLabel =
+    nextModuleLessonId !== null
+      ? "Module suivant →"
+      : "Retour à la formation";
+
   const answeredCount = questions.filter(
     (question) =>
       !!selectedAnswers[question.id]
@@ -383,6 +496,14 @@ export default function QuizPage() {
             <p className="mt-3 text-base text-slate-600">
               Répondez aux questions puis validez votre quiz.
             </p>
+
+            {maxAttempts !== null && (
+              <p className="mt-2 text-sm font-semibold text-slate-500">
+                {attemptsExhausted
+                  ? `Tentatives utilisées : ${attemptsUsed} sur ${maxAttempts}`
+                  : `Tentative ${attemptsUsed + 1} sur ${maxAttempts}`}
+              </p>
+            )}
           </div>
 
           <div className="mt-6 flex items-center justify-between gap-4">
@@ -467,27 +588,53 @@ export default function QuizPage() {
                 ) : (
                   <p className="mt-3 font-semibold text-amber-800">
                     Le score minimum requis n'est pas atteint.
+                    {attemptsExhausted &&
+                      " Vous avez utilisé toutes vos tentatives : contactez AGRIKEY pour demander une réinitialisation."}
                   </p>
                 )}
               </div>
 
               <div className="flex flex-col gap-3 sm:items-end">
                 {result.lesson_completed && (
-                  <Link
-                    href={`/formations/${courseId}/lecons/${lessonId}`}
-                    className="rounded-xl bg-green-700 px-5 py-3 text-center text-sm font-bold text-white hover:bg-green-800"
-                  >
-                    Retour à la leçon
-                  </Link>
+                  <>
+                    <Link
+                      href={nextModuleHref}
+                      className="rounded-xl bg-green-700 px-5 py-3 text-center text-sm font-bold text-white hover:bg-green-800"
+                    >
+                      {nextModuleLabel}
+                    </Link>
+
+                    <Link
+                      href={`/formations/${courseId}/lecons/${lessonId}`}
+                      className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      Revoir la leçon
+                    </Link>
+                  </>
                 )}
 
-                {!result.lesson_completed && (
+                {!result.lesson_completed && !attemptsExhausted && (
                   <button
-                    onClick={() => setResult(null)}
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-white"
+                    onClick={() => {
+                      setResult(null);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
                   >
                     Réessayer
+                    {attemptsLeft !== null
+                      ? ` (${attemptsLeft} tentative${attemptsLeft > 1 ? "s" : ""} restante${attemptsLeft > 1 ? "s" : ""})`
+                      : ""}
                   </button>
+                )}
+
+                {!result.lesson_completed && attemptsExhausted && (
+                  <Link
+                    href={`/formations/${courseId}/lecons/${lessonId}`}
+                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    Revoir la leçon
+                  </Link>
                 )}
               </div>
 
@@ -495,7 +642,57 @@ export default function QuizPage() {
           </div>
         )}
 
+        {!result && alreadyPassed && (
+          <div className="mb-8 rounded-3xl border border-green-200 bg-green-50 p-7">
+            <p className="text-xs font-bold uppercase tracking-widest text-green-700">
+              Quiz réussi
+            </p>
+            <p className="mt-2 font-bold text-green-800">
+              ✓ Vous avez déjà validé ce quiz
+              {status?.best_score !== null &&
+              status?.best_score !== undefined
+                ? ` (meilleur score : ${status.best_score} %)`
+                : ""}
+              .
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href={nextModuleHref}
+                className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white hover:bg-green-800"
+              >
+                {nextModuleLabel}
+              </Link>
+              <Link
+                href={`/formations/${courseId}/lecons/${lessonId}`}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Revoir la leçon
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!result && !alreadyPassed && attemptsExhausted && (
+          <div className="mb-8 rounded-3xl border border-amber-200 bg-amber-50 p-7">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+              Tentatives épuisées
+            </p>
+            <p className="mt-2 font-semibold text-amber-800">
+              Vous avez utilisé vos {maxAttempts} tentatives sans atteindre le
+              score minimum. Contactez AGRIKEY pour demander une
+              réinitialisation.
+            </p>
+            <Link
+              href={`/formations/${courseId}/lecons/${lessonId}`}
+              className="mt-4 inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Revoir la leçon
+            </Link>
+          </div>
+        )}
+
         {/* Questions */}
+        {!attemptsExhausted && (
         <div className="space-y-6">
           {questions.map((question, index) => (
             <section
@@ -560,8 +757,10 @@ export default function QuizPage() {
             </section>
           ))}
         </div>
+        )}
 
         {/* Validation */}
+        {!attemptsExhausted && (
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
@@ -594,6 +793,7 @@ export default function QuizPage() {
             </button>
           </div>
         </div>
+        )}
 
       </div>
     </main>
