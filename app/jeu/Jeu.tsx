@@ -22,7 +22,7 @@ import {
   type Sexe,
 } from "./moteur";
 
-const CLE_SAUVEGARDE = "sira-partie-v1";
+const CLE_SAUVEGARDE = "dakan-partie-v1";
 
 type Sauvegarde = { etat: Etat; evenementId: string | null };
 
@@ -155,10 +155,10 @@ function Bandeau() {
         Un jeu de choix de vie
       </p>
       <h1 className="mt-2 font-serif text-5xl font-bold text-[#5a2e0e] sm:text-6xl">
-        Sira
+        Dakan
       </h1>
       <p className="mt-2 text-lg text-[#7a5236]">
-        « Le chemin » — grandir au Mali, de l&apos;enfance à l&apos;âge adulte
+        « Destin » — grandir au Mali, de l&apos;enfance à l&apos;âge adulte
       </p>
       <div className="mx-auto mt-4 h-1.5 w-40 rounded-full bg-[linear-gradient(90deg,#14b53a_33%,#fcd116_33%_66%,#ce1126_66%)]" />
     </div>

@@ -1,4 +1,4 @@
-// Moteur du jeu « Sira, une vie au Mali ».
+// Moteur du jeu « Dakan : destin ».
 // Le jeu est entièrement décrit par des données (voir evenements.ts) :
 // chaque tour correspond à un âge, et à chaque âge un événement est tiré.
 
