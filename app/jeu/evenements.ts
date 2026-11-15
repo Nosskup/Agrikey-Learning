@@ -2,6 +2,7 @@
 // Pour ajouter un événement, il suffit d'ajouter un objet à la liste.
 
 import { accord, d, estFille, genrer, type Etat, type Evenement } from "./moteur";
+import { EVENEMENTS_DESTIN } from "./destins";
 
 const enEcole = (e: Etat) => d(e, "enEcole") === true;
 const auVillage = (e: Etat) => e.milieu === "village";
@@ -13,10 +14,12 @@ const A_SON_COMPTE = "à son compte";
 const selon = (e: Etat, cle: keyof Etat["jauges"], bonus = 0) =>
   e.jauges[cle] / 100 + bonus;
 
-export const EVENEMENTS: Evenement[] = [
+export const EVENEMENTS_BASE: Evenement[] = [
   // ==================== ENFANCE (6 - 11 ans) ====================
   {
     id: "rentree",
+    scene: "ecole",
+    majeur: true,
     cle: true,
     ages: [6, 6],
     titre: "L'âge d'aller à l'école",
@@ -51,6 +54,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Chez le maître coranique",
+        traits: ["pieux"],
         effets: { savoir: 4, respect: 8, sante: -5 },
         drapeaux: { scolarite: "coranique", enEcole: false },
         resultat:
@@ -69,6 +73,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "paludisme",
+    scene: "sante",
     ages: [6, 12],
     titre: "La fièvre de l'hivernage",
     texte:
@@ -100,6 +105,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "moustiquaire",
+    scene: "nuit",
     ages: [7, 11],
     titre: "Distribution de moustiquaires",
     texte:
@@ -119,6 +125,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "corvee-eau",
+    scene: "village",
     ages: [7, 10],
     condition: auVillage,
     titre: "Le puits est tari",
@@ -132,6 +139,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Proposer de s'organiser par tours avec les voisins",
+        traits: ["debrouillard"],
         effets: { respect: 8, famille: 3 },
         resultat:
           "Ton idée plaît : les familles se relaient avec une charrette et un âne. On dit que tu as la tête bien faite.",
@@ -140,6 +148,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "conte",
+    scene: "concession",
     ages: [6, 9],
     titre: "Les contes du soir",
     texte:
@@ -160,6 +169,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "fournitures",
+    scene: "marche",
     ages: [8, 12],
     condition: enEcole,
     titre: "Les fournitures scolaires",
@@ -168,6 +178,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Vendre des sachets d'eau glacée après l'école",
+        traits: ["debrouillard"],
         effets: { moyens: 8, sante: -3, respect: 4 },
         resultat: "« Ji suma ! Ji suma ! » Tu cries dans la chaleur et tu paies toi-même tes cahiers.",
       },
@@ -186,6 +197,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "premier-classe",
+    scene: "classe",
     ages: [8, 12],
     condition: enEcole,
     titre: "Le classement du trimestre",
@@ -194,6 +206,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Réviser seul sous le lampadaire de la rue",
+        traits: ["studieux"],
         alea: {
           chance: (e) => selon(e, "savoir", 0.2),
           succes: {
@@ -222,6 +235,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "troupeau",
+    scene: "champ",
     ages: [7, 12],
     condition: (e) => auVillage(e) && !enEcole(e),
     titre: "Garder le troupeau",
@@ -230,6 +244,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Aller s'excuser au voisin avec ton père",
+        traits: ["integre"],
         effets: { respect: 8, moyens: -4 },
         resultat: "Le voisin accepte les excuses et un petit dédommagement. L'honneur est sauf.",
       },
@@ -249,6 +264,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "alphabetisation",
+    scene: "ecole",
     ages: [10, 14],
     condition: (e) => !enEcole(e),
     titre: "Le centre d'alphabétisation",
@@ -257,6 +273,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "S'inscrire au rattrapage pour rejoindre l'école",
+        traits: ["studieux"],
         effets: { savoir: 12, moral: 5, famille: -3 },
         drapeaux: { enEcole: true, scolarite: "ecole", rattrapage: true },
         resultat:
@@ -276,6 +293,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "tabaski",
+    scene: "fete",
     ages: [7, 24],
     titre: "La Tabaski approche",
     texte: (e) =>
@@ -309,6 +327,7 @@ export const EVENEMENTS: Evenement[] = [
   // ==================== ADOLESCENCE (12 - 17 ans) ====================
   {
     id: "telephone",
+    scene: "ville",
     ages: [12, 15],
     titre: "Le premier téléphone",
     texte:
@@ -316,6 +335,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "L'utiliser pour apprendre (cours, vidéos, Wikipédia)",
+        traits: ["studieux"],
         effets: { savoir: 10, moral: 3 },
         drapeaux: { numerique: true },
         resultat: "Tu découvres qu'on peut tout apprendre en ligne, même avec peu de forfait.",
@@ -334,6 +354,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "greve",
+    scene: "classe",
     ages: [12, 20],
     condition: enEcole,
     titre: "Grève des enseignants",
@@ -342,6 +363,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Organiser un groupe d'étude avec les camarades",
+        traits: ["solidaire"],
         effets: { savoir: 8, respect: 6 },
         resultat: "Chaque soir, vous révisez ensemble dans une salle prêtée par la mairie. Tu restes à niveau.",
       },
@@ -359,6 +381,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "delestage",
+    scene: "nuit",
     ages: [13, 20],
     condition: enEcole,
     titre: "Délestages",
@@ -384,6 +407,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "grin",
+    scene: "concession",
     ages: [14, 22],
     titre: "Le grin et la tontine",
     texte: (e) =>
@@ -409,6 +433,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "def",
+    scene: "classe",
     cle: true,
     ages: [15, 16],
     condition: (e) => enEcole(e) && d(e, "def") === undefined,
@@ -437,6 +462,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "apres-def-echec",
+    scene: "ecole",
+    majeur: true,
     cle: true,
     ages: [15, 17],
     condition: (e) => d(e, "def") === false && enEcole(e),
@@ -470,6 +497,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "orientation",
+    scene: "ecole",
+    majeur: true,
     cle: true,
     ages: [15, 17],
     condition: (e) => d(e, "def") === true && enEcole(e) && !d(e, "orientation"),
@@ -498,6 +527,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "pretendant",
+    scene: "concession",
+    majeur: true,
     cle: true,
     ages: [14, 16],
     condition: (e) => estFille(e) && (!enEcole(e) || e.origine === "pauvre" || auVillage(e)),
@@ -527,6 +558,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Refuser fermement devant toute la famille",
+        traits: ["rebelle"],
         effets: { moral: 6, famille: -15, respect: -6 },
         drapeaux: { refusMariagePrecoce: true },
         resultat:
@@ -543,6 +575,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "aventure",
+    scene: "desert",
+    majeur: true,
     cle: true,
     ages: [15, 18],
     condition: (e) => !estFille(e) && !enEcole(e) && ici(e),
@@ -559,6 +593,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Tenter la route du désert vers l'Europe",
+        traits: ["audacieux"],
         alea: {
           chance: () => 0.25,
           succes: {
@@ -586,9 +621,12 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "exode-fille",
+    scene: "ville",
+    majeur: true,
     cle: true,
     ages: [13, 17],
-    condition: (e) => estFille(e) && auVillage(e) && !enEcole(e) && !d(e, "marie"),
+    condition: (e) =>
+      estFille(e) && auVillage(e) && !enEcole(e) && !d(e, "marie") && !d(e, "apprenti"),
     titre: "Partir travailler en ville",
     texte:
       "Plusieurs filles du village partent en saison sèche à Bamako comme aides-ménagères, pour préparer leur trousseau de mariage. On te propose une place.",
@@ -622,6 +660,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "apprentissage",
+    scene: "atelier",
+    majeur: true,
     cle: true,
     ages: [14, 18],
     condition: (e) => !enEcole(e) && !d(e, "apprenti") && ici(e) && !d(e, "metier"),
@@ -654,6 +694,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "orpaillage",
+    scene: "mine",
     ages: [15, 22],
     condition: (e) => !enEcole(e) && ici(e) && !d(e, "metier"),
     titre: "La ruée vers l'or",
@@ -662,6 +703,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Partir creuser",
+        traits: ["audacieux"],
         alea: {
           chance: () => 0.35,
           succes: {
@@ -684,6 +726,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "deplaces",
+    scene: "concession",
     ages: [12, 24],
     titre: "Des cousins déplacés",
     texte:
@@ -691,7 +734,9 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Partager ta chambre et ton repas",
+        traits: ["solidaire"],
         effets: { famille: 10, respect: 10, moyens: -8, moral: 3 },
+        drapeaux: { aideDeplaces: true },
         resultat:
           "La maison est pleine, mais on partage le tô et la sauce. Un de tes cousins devient ton meilleur ami.",
       },
@@ -699,17 +744,20 @@ export const EVENEMENTS: Evenement[] = [
         texte: "Les aider à s'inscrire auprès des services sociaux et des ONG",
         condition: (e) => e.jauges.savoir >= 30,
         effets: { respect: 12, savoir: 3 },
+        drapeaux: { aideDeplaces: true },
         resultat: "Grâce à toi, ils reçoivent des kits et les enfants sont scolarisés. On t'appelle pour remplir d'autres dossiers.",
       },
       {
         texte: "Rester à l'écart",
         effets: { famille: -10, respect: -8 },
+        drapeaux: { rejetDeplaces: true },
         resultat: "Les anciens remarquent ton attitude. « Un parent, ça ne se renie pas. »",
       },
     ],
   },
   {
     id: "inondation",
+    scene: "pluie",
     ages: [10, 24],
     condition: (e) => e.milieu === "ville",
     titre: "Les inondations",
@@ -718,6 +766,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Aider les voisins à évacuer",
+        traits: ["solidaire"],
         effets: { respect: 12, sante: -5 },
         resultat: "Toute la nuit, de l'eau jusqu'à la taille, tu portes enfants et affaires. Le quartier s'en souvient.",
       },
@@ -730,6 +779,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "mauvaise-recolte",
+    scene: "champ",
     ages: [10, 25],
     condition: auVillage,
     titre: "Une mauvaise saison",
@@ -743,6 +793,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Proposer de faire du maraîchage de contre-saison",
+        traits: ["debrouillard"],
         effets: { moyens: 8, savoir: 5, respect: 6 },
         drapeaux: { agri: true },
         resultat: "Avec un petit puits et des planches d'oignons, la famille tient jusqu'à l'hivernage suivant.",
@@ -756,6 +807,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "ramadan",
+    scene: "mosquee",
     ages: [12, 24],
     titre: "Le mois de Ramadan",
     texte:
@@ -763,6 +815,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Jeûner et aller à la mosquée chaque soir",
+        traits: ["pieux"],
         effets: { respect: 8, moral: 4, sante: -3 },
         resultat: "Tu sors du mois apaisé·e. Les anciens te citent en exemple.",
       },
@@ -775,6 +828,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "accident-moto",
+    scene: "ville",
     ages: [16, 24],
     titre: "Sur la route",
     texte:
@@ -808,6 +862,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "bac",
+    scene: "classe",
     cle: true,
     ages: [18, 20],
     condition: (e) => d(e, "lycee") === true && d(e, "bac") === undefined && enEcole(e),
@@ -818,7 +873,7 @@ export const EVENEMENTS: Evenement[] = [
       {
         texte: "Passer le Bac",
         alea: {
-          chance: (e) => selon(e, "savoir", 0.1),
+          chance: (e) => selon(e, "savoir", 0.1) + (d(e, "triche") ? 0.3 : 0),
           succes: {
             effets: { savoir: 10, moral: 12, famille: 10, respect: 10 },
             drapeaux: { bac: true },
@@ -836,6 +891,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "bac-echec",
+    scene: "nuit",
     cle: true,
     ages: [19, 21],
     condition: (e) => d(e, "bac") === false && enEcole(e),
@@ -869,6 +925,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "apres-bac",
+    scene: "diplome",
+    majeur: true,
     cle: true,
     ages: [19, 21],
     condition: (e) => d(e, "bac") === true && !d(e, "suiteBac"),
@@ -885,7 +943,7 @@ export const EVENEMENTS: Evenement[] = [
       {
         texte: "Tenter une bourse pour étudier à l'étranger",
         alea: {
-          chance: (e) => selon(e, "savoir", -0.3),
+          chance: (e) => selon(e, "savoir", -0.3) + (d(e, "recommande") ? 0.25 : 0),
           succes: {
             effets: { savoir: 18, moral: 10, famille: 4 },
             drapeaux: { suiteBac: "etranger", etudes: "un master obtenu au Maroc grâce à une bourse" },
@@ -928,6 +986,8 @@ export const EVENEMENTS: Evenement[] = [
   // ==================== JEUNE ADULTE (19 - 25 ans) ====================
   {
     id: "diplome",
+    scene: "diplome",
+    majeur: true,
     cle: true,
     ages: [22, 24],
     condition: (e) => (d(e, "suiteBac") === "fac" || d(e, "suiteBac") === "etranger") && enEcole(e),
@@ -962,6 +1022,8 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "entreprise",
+    scene: "atelier",
+    majeur: true,
     cle: true,
     ages: [19, 25],
     condition: (e) =>
@@ -990,6 +1052,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Démarrer petit, avec tes économies",
+        traits: ["prevoyant"],
         condition: (e) => e.jauges.moyens >= 25,
         effets: { moyens: -10, moral: 6, savoir: 3 },
         drapeaux: { metier: A_SON_COMPTE },
@@ -1005,6 +1068,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "agriculture",
+    scene: "champ",
     ages: [18, 25],
     condition: (e) => ici(e) && sansMetier(e) && !enEcole(e),
     titre: "Une parcelle à cultiver",
@@ -1037,6 +1101,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "mobile-money",
+    scene: "marche",
     ages: [17, 25],
     condition: (e) => ici(e) && e.milieu === "ville" && sansMetier(e) && !enEcole(e),
     titre: "Un kiosque Orange Money",
@@ -1058,6 +1123,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "formation-en-ligne",
+    scene: "nuit",
     ages: [17, 25],
     condition: (e) => e.jauges.savoir >= 20,
     titre: "Se former en ligne",
@@ -1079,6 +1145,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "petit-boulot",
+    scene: "marche",
     ages: [18, 25],
     condition: (e) => sansMetier(e) && ici(e) && !enEcole(e),
     titre: "Joindre les deux bouts",
@@ -1105,6 +1172,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "aide-famille",
+    scene: "concession",
     ages: [20, 25],
     condition: (e) => !!d(e, "metier"),
     titre: "La famille compte sur toi",
@@ -1118,6 +1186,7 @@ export const EVENEMENTS: Evenement[] = [
       },
       {
         texte: "Aider, mais fixer un budget et épargner",
+        traits: ["prevoyant"],
         effets: { famille: 4, moyens: 4, savoir: 3 },
         resultat: "Certains grognent, mais tu construis un avenir solide pour toi et pour eux.",
       },
@@ -1130,9 +1199,12 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "mariage",
+    scene: "fete",
+    majeur: true,
     cle: true,
     ages: [21, 25],
-    condition: (e) => !d(e, "marie") && (e.jauges.moyens >= 20 || estFille(e)),
+    condition: (e) =>
+      !d(e, "marie") && !d(e, "renonceMariage") && (e.jauges.moyens >= 20 || estFille(e)),
     titre: "Le mariage",
     texte: (e) =>
       estFille(e)
@@ -1141,6 +1213,7 @@ export const EVENEMENTS: Evenement[] = [
     choix: [
       {
         texte: "Accepter et organiser un grand mariage",
+        traits: ["solidaire"],
         effets: { famille: 12, respect: 10, moyens: -18, moral: 10 },
         drapeaux: { marie: true },
         resultat: "Griots, djembés, bazin brodé : le mariage dure trois jours. Tout le quartier en parle.",
@@ -1160,6 +1233,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "enfant",
+    scene: "concession",
     ages: [22, 25],
     condition: (e) => d(e, "marie") === true && !d(e, "enfants"),
     titre: "Une naissance",
@@ -1181,6 +1255,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "politique",
+    scene: "ville",
     ages: [20, 25],
     condition: (e) => e.jauges.respect >= 50 && ici(e),
     titre: "Une proposition politique",
@@ -1190,10 +1265,12 @@ export const EVENEMENTS: Evenement[] = [
       {
         texte: "Accepter",
         effets: { moyens: 12, respect: -6, moral: -3 },
+        drapeaux: { argentPolitique: true },
         resultat: "L'argent arrive vite. Mais certains amis te regardent différemment.",
       },
       {
         texte: "Refuser et rester indépendant·e",
+        traits: ["integre"],
         effets: { respect: 8, moral: 5 },
         resultat: "« Mon nom n'est pas à vendre. » Ta réputation d'intégrité grandit.",
       },
@@ -1207,6 +1284,7 @@ export const EVENEMENTS: Evenement[] = [
   },
   {
     id: "migrant-vie",
+    scene: "desert",
     ages: [17, 25],
     condition: (e) => !!d(e, "migrant"),
     titre: "Loin du pays",
@@ -1232,6 +1310,8 @@ export const EVENEMENTS: Evenement[] = [
     ],
   },
 ];
+
+export const EVENEMENTS: Evenement[] = [...EVENEMENTS_BASE, ...EVENEMENTS_DESTIN];
 
 // Le métier « à son compte » dépend de l'apprentissage suivi et du sexe.
 export function libelleMetier(e: Etat) {

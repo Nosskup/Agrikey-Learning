@@ -28,6 +28,134 @@ export const LIBELLES_JAUGES: Record<CleJauge, { nom: string; icone: string }> =
 
 export type Valeur = string | number | boolean;
 
+// ---------- Traits de caractère ----------
+// Les traits naissent de tes choix et pèsent ensuite sur toute ta vie :
+// ils modifient tes chances de réussite et tes jauges chaque année.
+
+export type Domaine = "etudes" | "affaires" | "risque" | "social";
+
+export type CleTrait =
+  | "studieux"
+  | "debrouillard"
+  | "pieux"
+  | "solidaire"
+  | "audacieux"
+  | "integre"
+  | "rebelle"
+  | "prevoyant"
+  | "resilient";
+
+export const TRAITS: Record<
+  CleTrait,
+  {
+    nom: [string, string];
+    icone: string;
+    effet: string;
+    bonus?: Partial<Record<Domaine, number>>;
+    parAn?: Partial<Jauges>;
+  }
+> = {
+  studieux: {
+    nom: ["Studieux", "Studieuse"],
+    icone: "📖",
+    effet: "+12 % de réussite aux examens et concours, +1 Savoir par an",
+    bonus: { etudes: 0.12 },
+    parAn: { savoir: 1 },
+  },
+  debrouillard: {
+    nom: ["Débrouillard", "Débrouillarde"],
+    icone: "🛠️",
+    effet: "+12 % de réussite dans les affaires, +1 Moyens par an",
+    bonus: { affaires: 0.12 },
+    parAn: { moyens: 1 },
+  },
+  pieux: {
+    nom: ["Pieux", "Pieuse"],
+    icone: "🕌",
+    effet: "+1 Respect et +1 Moral par an",
+    parAn: { respect: 1, moral: 1 },
+  },
+  solidaire: {
+    nom: ["Solidaire", "Solidaire"],
+    icone: "🤲",
+    effet: "+10 % quand tu as besoin des autres, +1 Famille par an",
+    bonus: { social: 0.1 },
+    parAn: { famille: 1 },
+  },
+  audacieux: {
+    nom: ["Audacieux", "Audacieuse"],
+    icone: "🔥",
+    effet: "+12 % de réussite quand tu prends des risques",
+    bonus: { risque: 0.12 },
+  },
+  integre: {
+    nom: ["Intègre", "Intègre"],
+    icone: "⚖️",
+    effet: "+2 Respect par an : ta parole a de la valeur",
+    parAn: { respect: 2 },
+  },
+  rebelle: {
+    nom: ["Rebelle", "Rebelle"],
+    icone: "✊",
+    effet: "+2 Moral mais -1 Famille par an : tu suis ta propre voie",
+    parAn: { moral: 2, famille: -1 },
+  },
+  prevoyant: {
+    nom: ["Prévoyant", "Prévoyante"],
+    icone: "🧮",
+    effet: "+2 Moyens par an grâce à l'épargne",
+    parAn: { moyens: 2 },
+  },
+  resilient: {
+    nom: ["Résilient", "Résiliente"],
+    icone: "🌱",
+    effet: "Né des échecs : +8 % de réussite partout, +1 Moral par an",
+    bonus: { etudes: 0.08, affaires: 0.08, risque: 0.08, social: 0.08 },
+    parAn: { moral: 1 },
+  },
+};
+
+export function nomTrait(e: { sexe: Sexe }, t: CleTrait) {
+  return TRAITS[t].nom[e.sexe === "fille" ? 1 : 0];
+}
+
+// Domaine par défaut des événements existants (pour les bonus de traits).
+const DOMAINE_PAR_EVENEMENT: Record<string, Domaine> = {
+  "premier-classe": "etudes",
+  def: "etudes",
+  "apres-def-echec": "etudes",
+  bac: "etudes",
+  "bac-echec": "etudes",
+  "apres-bac": "etudes",
+  diplome: "etudes",
+  entreprise: "affaires",
+  agriculture: "affaires",
+  orpaillage: "risque",
+  aventure: "risque",
+  "exode-fille": "risque",
+  "accident-moto": "risque",
+  pretendant: "social",
+};
+
+export type NomScene =
+  | "village"
+  | "ville"
+  | "ecole"
+  | "classe"
+  | "mosquee"
+  | "champ"
+  | "fleuve"
+  | "marche"
+  | "sante"
+  | "nuit"
+  | "desert"
+  | "fete"
+  | "mine"
+  | "concession"
+  | "pluie"
+  | "diplome"
+  | "atelier";
+
 export type Etat = {
   prenom: string;
   nomFamille: string;
@@ -40,18 +168,32 @@ export type Etat = {
   jauges: Jauges;
   drapeaux: Record<string, Valeur>;
   vus: string[];
-  journal: { age: number; texte: string }[];
+  journal: EntreeJournal[];
+  traits: CleTrait[];
+  echecs: number;
   fini: boolean;
+};
+
+export type EntreeJournal = {
+  age: number;
+  texte: string;
+  titre?: string;
+  majeur?: boolean;
+  scene?: NomScene;
 };
 
 export type Consequence = {
   effets?: Partial<Jauges>;
+  // Pour les décisions qui changent le lieu de vie.
+  demenager?: { region: string; milieu: Milieu };
   drapeaux?: Record<string, Valeur>;
   resultat: string | ((e: Etat) => string);
 };
 
 export type Choix = Consequence & {
   texte: string | ((e: Etat) => string);
+  // Traits de caractère gagnés en faisant ce choix.
+  traits?: CleTrait[];
   condition?: (e: Etat) => boolean;
   // Si « alea » est présent, la réussite dépend d'une probabilité
   // et les effets/résultat de base sont remplacés par ceux de l'issue.
@@ -73,11 +215,17 @@ export type Evenement = {
   titre: string;
   texte: string | ((e: Etat) => string);
   choix: Choix[];
+  // Une décision majeure change durablement la trajectoire de vie.
+  majeur?: boolean;
+  // Un écho est la conséquence, des années plus tard, d'un choix passé.
+  echo?: boolean;
+  domaine?: Domaine;
+  scene?: NomScene | ((e: Etat) => NomScene);
 };
 
 // Âges auxquels le joueur doit faire un choix.
 export const AGES_DES_TOURS = [
-  6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+  6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
 ];
 
 export const AGE_FINAL = 25;
@@ -86,6 +234,13 @@ export const AGE_FINAL = 25;
 
 export function borner(n: number) {
   return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+// Rendements décroissants : au-dessus de 70, les gains comptent pour moitié.
+// Plus on est haut, plus il est difficile de monter encore.
+export function ajouterA(valeur: number, delta: number) {
+  if (delta > 0 && valeur >= 70) return borner(valeur + Math.ceil(delta / 2));
+  return borner(valeur + delta);
 }
 
 export function txt(valeur: string | ((e: Etat) => string), e: Etat): string {
@@ -215,10 +370,17 @@ export function nouvellePartie(
     },
     vus: [],
     journal: [],
+    traits: [],
+    echecs: 0,
     fini: false,
   };
 
-  etat.journal.push({ age: 0, texte: recitNaissance(etat) });
+  etat.journal.push({
+    age: 0,
+    titre: "La naissance",
+    texte: recitNaissance(etat),
+    scene: "concession",
+  });
   return etat;
 }
 
@@ -251,13 +413,14 @@ export function evenementDuTour(e: Etat, tous: Evenement[]): Evenement {
       (!ev.condition || ev.condition(e)),
   );
 
-  // Les étapes clés passent en priorité, la plus ancienne d'abord.
+  // Les étapes clés et les échos du passé passent en priorité,
+  // la plus ancienne d'abord.
   const cles = eligibles
-    .filter((ev) => ev.cle)
+    .filter((ev) => ev.cle || ev.echo)
     .sort((a, b) => a.ages[0] - b.ages[0]);
   if (cles.length > 0) return cles[0];
 
-  const autres = eligibles.filter((ev) => !ev.cle);
+  const autres = eligibles.filter((ev) => !ev.cle && !ev.echo);
   if (autres.length > 0) return hasard(autres);
 
   return ANNEE_CALME;
@@ -272,15 +435,44 @@ export type Issue = {
   resultat: string;
   variations: Partial<Jauges>;
   reussite?: boolean;
+  chance?: number;
+  nouveauxTraits: CleTrait[];
+  // Ce qui a changé dans ta situation (métier, mariage, lieu de vie…).
+  changements: string[];
+  // Les effets du temps qui passe jusqu'au prochain tour.
+  annee: string[];
 };
+
+export function domaineDe(ev: Evenement): Domaine | undefined {
+  return ev.domaine ?? DOMAINE_PAR_EVENEMENT[ev.id];
+}
+
+export function bonusTraits(e: Etat, domaine?: Domaine) {
+  if (!domaine) return 0;
+  return (e.traits ?? []).reduce(
+    (total, t) => total + (TRAITS[t].bonus?.[domaine] ?? 0),
+    0,
+  );
+}
+
+export function probabilite(e: Etat, ev: Evenement, choix: Choix) {
+  if (!choix.alea) return undefined;
+  const p = choix.alea.chance(e) + bonusTraits(e, domaineDe(ev));
+  return Math.max(0.05, Math.min(0.95, p));
+}
+
+export function sceneDe(ev: Evenement, e: Etat): NomScene {
+  if (ev.scene) return typeof ev.scene === "function" ? ev.scene(e) : ev.scene;
+  return e.milieu === "village" ? "village" : "ville";
+}
 
 export function appliquerChoix(e: Etat, ev: Evenement, choix: Choix): Issue {
   let consequence: Consequence = choix;
   let reussite: boolean | undefined;
+  const chance = probabilite(e, ev, choix);
 
-  if (choix.alea) {
-    const p = Math.max(0.05, Math.min(0.95, choix.alea.chance(e)));
-    reussite = Math.random() < p;
+  if (choix.alea && chance !== undefined) {
+    reussite = Math.random() < chance;
     consequence = reussite ? choix.alea.succes : choix.alea.echec;
   }
 
@@ -289,18 +481,35 @@ export function appliquerChoix(e: Etat, ev: Evenement, choix: Choix): Issue {
   for (const [cle, delta] of Object.entries(consequence.effets ?? {})) {
     const k = cle as CleJauge;
     const avant = jauges[k];
-    jauges[k] = borner(avant + (delta ?? 0));
+    jauges[k] = ajouterA(avant, delta ?? 0);
     variations[k] = jauges[k] - avant;
   }
 
   const drapeaux = { ...e.drapeaux, ...(choix.drapeaux ?? {}), ...(consequence.drapeaux ?? {}) };
 
-  let suivant: Etat = {
+  // Traits gagnés : ceux du choix, plus « résilient » après deux échecs.
+  const traitsAvant = e.traits ?? [];
+  const echecs = (e.echecs ?? 0) + (reussite === false ? 1 : 0);
+  const gagnes = [...(choix.traits ?? [])];
+  if (echecs >= 2) gagnes.push("resilient");
+  const nouveauxTraits = [...new Set(gagnes)].filter(
+    (t) => !traitsAvant.includes(t),
+  );
+
+  const suivant: Etat = {
     ...e,
     jauges,
     drapeaux,
+    traits: [...traitsAvant, ...nouveauxTraits],
+    echecs,
     vus: ev.repetable ? e.vus : [...e.vus, ev.id],
   };
+  const demenagement = consequence.demenager ?? choix.demenager;
+  if (demenagement) {
+    suivant.drapeaux.regionNatale = e.region;
+    suivant.region = demenagement.region;
+    suivant.milieu = demenagement.milieu;
+  }
 
   let resultat = txt(consequence.resultat, suivant);
 
@@ -319,23 +528,105 @@ export function appliquerChoix(e: Etat, ev: Evenement, choix: Choix): Issue {
 
   suivant.journal = [
     ...e.journal,
-    { age: e.age, texte: `${ev.titre} — ${resultat}` },
+    {
+      age: e.age,
+      titre: genrer(e, ev.titre),
+      texte: resultat,
+      majeur: ev.majeur,
+      scene: sceneDe(ev, e),
+    },
   ];
 
-  suivant = avancer(suivant);
-  return { etat: suivant, resultat, variations, reussite };
+  const changements = changementsDeSituation(e, suivant);
+  const { etat: vieilli, messages } = avancer(suivant);
+  return {
+    etat: vieilli,
+    resultat,
+    variations,
+    reussite,
+    chance,
+    nouveauxTraits,
+    changements,
+    annee: messages,
+  };
 }
 
-function avancer(e: Etat): Etat {
+function changementsDeSituation(avant: Etat, apres: Etat): string[] {
+  const c: string[] = [];
+  const a = avant.drapeaux;
+  const b = apres.drapeaux;
+  const f = (m: string, w: string) => accord(apres, m, w);
+  if (b.metier && b.metier !== a.metier) c.push("💼 Tu as désormais un métier.");
+  if (b.marie && !a.marie) c.push(`💍 Tu es ${f("marié", "mariée")}.`);
+  if (b.enfants && !a.enfants) c.push("👶 Tu es devenu·e parent.");
+  if (b.migrant && b.migrant !== a.migrant) c.push(`✈️ Tu vis désormais ${b.migrant}.`);
+  if (!b.migrant && a.migrant) c.push("🏠 Tu es de retour au pays.");
+  if (apres.milieu !== avant.milieu) c.push(`🏙️ Tu vis désormais à ${apres.region}.`);
+  if (a.enEcole && !b.enEcole && !b.metier) c.push("🎒 Ta scolarité s'arrête ici.");
+  if (b.bac === true && a.bac !== true) c.push("🎓 Tu es bachelier·ère.");
+  if (b.ami && !a.ami) c.push(`🤝 ${b.ami} entre dans ta vie.`);
+  if (b.mentor && !a.mentor) c.push("🧑🏿‍🏫 Tu as un mentor.");
+  return c.map((x) => genrer(apres, x));
+}
+
+// Les effets du temps : ta situation pèse sur tes jauges chaque année.
+function passifs(e: Etat): { effets: Partial<Jauges>; messages: string[] } {
+  const effets: Partial<Jauges> = {};
+  const messages: string[] = [];
+  const ajouter = (delta: Partial<Jauges>, message?: string) => {
+    for (const [k, v] of Object.entries(delta)) {
+      const cle = k as CleJauge;
+      effets[cle] = (effets[cle] ?? 0) + (v ?? 0);
+    }
+    if (message) messages.push(message);
+  };
+  const dr = e.drapeaux;
+
+  if (dr.enEcole) ajouter({ savoir: 1 }, "🎒 L'école te fait progresser (+1 Savoir).");
+  if (dr.metier) ajouter({ moyens: 3 }, "💼 Ton travail te fait vivre (+3 Moyens).");
+  if (dr.migrant)
+    ajouter({ famille: 2, moral: -2 }, "✈️ Tes transferts aident la famille, mais l'exil pèse (+2 Famille, -2 Moral).");
+  if (dr.enfants) ajouter({ moyens: -3, moral: 2 }, "👶 Élever un enfant coûte cher, mais quel bonheur (-3 Moyens, +2 Moral).");
+  if (dr.mariagePrecoce && e.age < 21)
+    ajouter({ savoir: -1, sante: -2 }, "💔 Le mariage précoce freine ta jeunesse (-1 Savoir, -2 Santé).");
+  if (e.age >= 17)
+    ajouter({ moyens: -4, sante: -1 }, "🧾 La vie d'adulte coûte cher et fatigue (-4 Moyens, -1 Santé).");
+  if (e.jauges.moyens < 12)
+    ajouter({ sante: -3 }, "🍚 La pauvreté pèse sur ta santé (-3 Santé).");
+  if (e.jauges.moral < 20)
+    ajouter({ sante: -2 }, "🌧️ Le découragement use ton corps (-2 Santé).");
+
+  const parTraits: Partial<Jauges> = {};
+  for (const t of e.traits ?? []) {
+    for (const [k, v] of Object.entries(TRAITS[t].parAn ?? {})) {
+      const cle = k as CleJauge;
+      parTraits[cle] = (parTraits[cle] ?? 0) + (v ?? 0);
+    }
+  }
+  if (Object.keys(parTraits).length > 0) ajouter(parTraits, "✨ Ton caractère façonne ta vie (effets de tes traits).");
+
+  return { effets, messages };
+}
+
+function avancer(e: Etat): { etat: Etat; messages: string[] } {
   const tour = e.tour + 1;
   if (tour >= AGES_DES_TOURS.length) {
-    return { ...e, tour, age: AGE_FINAL, fini: true };
+    return { etat: { ...e, tour, age: AGE_FINAL, fini: true }, messages: [] };
   }
-  return { ...e, tour, age: AGES_DES_TOURS[tour] };
+  const { effets, messages } = passifs(e);
+  const jauges = { ...e.jauges };
+  for (const [k, v] of Object.entries(effets)) {
+    const cle = k as CleJauge;
+    jauges[cle] = ajouterA(jauges[cle], v ?? 0);
+  }
+  return {
+    etat: { ...e, jauges, tour, age: AGES_DES_TOURS[tour] },
+    messages: messages.map((m) => genrer(e, m)),
+  };
 }
 
 export function demarrer(e: Etat): Etat {
-  return { ...e, tour: 0, age: AGES_DES_TOURS[0] };
+  return { ...e, tour: 0, age: AGES_DES_TOURS[0], traits: e.traits ?? [], echecs: e.echecs ?? 0 };
 }
 
 const ANNEE_CALME: Evenement = {
@@ -378,7 +669,7 @@ export function bilanDeVie(e: Etat, metier?: string): Bilan {
   const etudes = e.drapeaux.etudes as string | undefined;
 
   p.push(
-    `À 25 ans, ${e.prenom} ${e.nomFamille} regarde le chemin parcouru depuis ${e.region}.`,
+    `À 25 ans, ${e.prenom} ${e.nomFamille} regarde le chemin parcouru depuis ${e.drapeaux.regionNatale ?? e.region}.`,
   );
 
   if (etudes) p.push(`Côté études : ${etudes}.`);
@@ -396,6 +687,14 @@ export function bilanDeVie(e: Etat, metier?: string): Bilan {
     p.push(
       `Tu vis loin du pays (${e.drapeaux.migrant}) et tu envoies de l'argent à la famille dès que tu peux.`,
     );
+  if (e.drapeaux.ami)
+    p.push(
+      e.drapeaux.amiDestin
+        ? `${e.drapeaux.ami}, ton ami·e d'enfance : ${e.drapeaux.amiDestin}`
+        : `${e.drapeaux.ami}, ton ami·e d'enfance, est toujours à tes côtés.`,
+    );
+  if (e.drapeaux.triche)
+    p.push("Au fond de toi, le souvenir des sujets achetés au Bac ne s'efface pas tout à fait.");
   if (e.drapeaux.association)
     p.push("Dans ton quartier, on te connaît pour ton engagement associatif.");
 

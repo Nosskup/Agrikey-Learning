@@ -2,27 +2,34 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { EVENEMENTS, libelleMetier } from "./evenements";
+import { Avatar, Illustration } from "./Illustrations";
 import {
   AGES_DES_TOURS,
   LIBELLES_JAUGES,
   REGIONS,
+  TRAITS,
   appliquerChoix,
   bilanDeVie,
   choixDisponibles,
   demarrer,
   evenementDuTour,
+  genrer,
   nomAuHasard,
+  nomTrait,
   nouvellePartie,
   prenomAuHasard,
+  probabilite,
+  sceneDe,
   txt,
   type CleJauge,
+  type CleTrait,
   type Etat,
   type Evenement,
   type Issue,
   type Sexe,
 } from "./moteur";
 
-const CLE_SAUVEGARDE = "dakan-partie-v1";
+const CLE_SAUVEGARDE = "dakan-partie-v2";
 
 type Sauvegarde = { etat: Etat; evenementId: string | null };
 
@@ -67,7 +74,8 @@ export default function Jeu() {
 
   function reprendre() {
     if (!sauvegarde) return;
-    const { etat: e, evenementId } = sauvegarde;
+    const { etat: brut, evenementId } = sauvegarde;
+    const e: Etat = { ...brut, traits: brut.traits ?? [], echecs: brut.echecs ?? 0 };
     setEtat(e);
     setIntro(false);
     if (e.fini) return;
@@ -102,7 +110,7 @@ export default function Jeu() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf6ee] text-[#2b1d12]">
+    <main className="min-h-screen bg-[#fbf6ee] bg-[radial-gradient(#ead9c0_1px,transparent_1px)] [background-size:18px_18px] text-[#2b1d12]">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
         {!etat && (
           <Creation
@@ -148,7 +156,7 @@ export default function Jeu() {
 
 // ---------------------------------------------------------------------------
 
-function Bandeau() {
+function Bandeau({ avecImage = false }: { avecImage?: boolean }) {
   return (
     <div className="mb-8 text-center">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#b5651d]">
@@ -161,14 +169,28 @@ function Bandeau() {
         « Destin » — grandir au Mali, de l&apos;enfance à l&apos;âge adulte
       </p>
       <div className="mx-auto mt-4 h-1.5 w-40 rounded-full bg-[linear-gradient(90deg,#14b53a_33%,#fcd116_33%_66%,#ce1126_66%)]" />
+      {avecImage && (
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[#e8d9c4] shadow-sm">
+          <Illustration scene="fleuve" className="block h-40 w-full sm:h-52" />
+        </div>
+      )}
     </div>
   );
 }
 
-function Carte({ children }: { children: React.ReactNode }) {
+function Carte({
+  children,
+  image,
+  bordure = "border-[#e8d9c4]",
+}: {
+  children: React.ReactNode;
+  image?: React.ReactNode;
+  bordure?: string;
+}) {
   return (
-    <div className="rounded-2xl border border-[#e8d9c4] bg-white p-6 shadow-sm sm:p-8">
-      {children}
+    <div className={`overflow-hidden rounded-2xl border-2 bg-white shadow-sm ${bordure}`}>
+      {image}
+      <div className="p-6 sm:p-8">{children}</div>
     </div>
   );
 }
@@ -219,7 +241,7 @@ function Creation({
 
   return (
     <>
-      <Bandeau />
+      <Bandeau avecImage />
 
       {sauvegarde && (
         <div className="mb-6 rounded-2xl border border-[#14b53a]/30 bg-[#effaf2] p-5 text-center">
@@ -339,11 +361,12 @@ function Creation({
   );
 }
 
+
 function Naissance({ etat, onSuite }: { etat: Etat; onSuite: () => void }) {
   return (
     <>
       <Bandeau />
-      <Carte>
+      <Carte image={<Illustration scene="concession" etat={etat} className="block h-44 w-full sm:h-56" />}>
         <p className="text-sm font-semibold uppercase tracking-wider text-[#b5651d]">
           Jour 7 — le baptême
         </p>
@@ -353,15 +376,56 @@ function Naissance({ etat, onSuite }: { etat: Etat; onSuite: () => void }) {
         <p className="mt-4 text-lg leading-relaxed">{etat.journal[0]?.texte}</p>
         <p className="mt-4 leading-relaxed text-[#7a5236]">
           Les premières années passent, bercées par les chants des femmes, le bruit
-          des pilons et les appels à la prière. Te voilà {etat.sexe === "fille" ? "grande" : "grand"} : ta vie, désormais,
-          dépend aussi de tes choix.
+          des pilons et les appels à la prière. Te voilà{" "}
+          {etat.sexe === "fille" ? "grande" : "grand"} : ta vie, désormais, dépend
+          aussi de tes choix.
         </p>
+        <div className="mt-5 rounded-xl bg-[#fdf1e4] p-4 text-sm leading-relaxed text-[#5a3d26]">
+          <p className="font-semibold">Comment ça marche</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>
+              Les <strong>décisions majeures ★</strong> changent durablement ta
+              trajectoire.
+            </li>
+            <li>
+              Certains choix forgent ton <strong>caractère</strong> (traits) : ils
+              augmentent tes chances et agissent chaque année.
+            </li>
+            <li>
+              Tes actes ont des <strong>échos</strong> : ils peuvent revenir des
+              années plus tard.
+            </li>
+            <li>🎲 indique une issue incertaine, avec tes chances de réussite.</li>
+          </ul>
+        </div>
         <div className="mt-8">
           <BoutonPrincipal onClick={onSuite}>Commencer ma vie</BoutonPrincipal>
         </div>
       </Carte>
     </>
   );
+}
+
+function PastilleTrait({ etat, trait }: { etat: Etat; trait: CleTrait }) {
+  return (
+    <span
+      title={TRAITS[trait].effet}
+      className="inline-flex cursor-help items-center gap-1 rounded-full border border-[#e8d9c4] bg-[#fdf8f1] px-2.5 py-0.5 text-xs font-semibold text-[#5a3d26]"
+    >
+      {TRAITS[trait].icone} {nomTrait(etat, trait)}
+    </span>
+  );
+}
+
+function situation(etat: Etat) {
+  const d = etat.drapeaux;
+  const metier = libelleMetier(etat);
+  if (d.migrant) return `Vit ${d.migrant}`;
+  if (metier) return metier.charAt(0).toUpperCase() + metier.slice(1);
+  if (d.enEcole) return d.suiteBac ? "Étudiant·e" : d.lycee ? "Lycéen·ne" : "Élève";
+  if (d.apprenti) return "Apprenti·e";
+  if (etat.age < 14) return "Enfant";
+  return "Sans emploi stable";
 }
 
 function Tableau({
@@ -374,22 +438,29 @@ function Tableau({
   const progression = Math.round(
     (Math.min(etat.tour, AGES_DES_TOURS.length) / AGES_DES_TOURS.length) * 100,
   );
+  const traits = etat.traits ?? [];
   return (
     <div className="mb-6 rounded-2xl border border-[#e8d9c4] bg-white p-4 shadow-sm">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <span className="text-lg font-bold">
-            {etat.sexe === "fille" ? "👧🏿" : "👦🏿"} {etat.prenom} {etat.nomFamille}
-          </span>
-          <span className="ml-2 text-sm text-[#7a5236] first-letter:uppercase">
-            {etat.region}
-          </span>
+      <div className="flex items-center gap-3">
+        <Avatar etat={etat} taille={60} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="truncate text-lg font-bold">
+              {etat.prenom} {etat.nomFamille}
+            </span>
+            <span className="shrink-0 rounded-full bg-[#5a2e0e] px-3 py-1 text-sm font-bold text-white">
+              {etat.age} ans
+            </span>
+          </div>
+          <p className="truncate text-sm text-[#7a5236]">
+            {genrer(etat, situation(etat))} ·{" "}
+            <span className="first-letter:uppercase">{etat.region}</span>
+            {etat.drapeaux.marie ? " · 💍" : ""}
+            {etat.drapeaux.enfants ? " · 👶" : ""}
+          </p>
         </div>
-        <span className="rounded-full bg-[#5a2e0e] px-3 py-1 text-sm font-bold text-white">
-          {etat.age} ans
-        </span>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f3e6d4]">
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#f3e6d4]">
         <div
           className="h-full bg-[#b5651d] transition-all"
           style={{ width: `${progression}%` }}
@@ -428,6 +499,16 @@ function Tableau({
           );
         })}
       </div>
+      {traits.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1.5 border-t border-[#f3e6d4] pt-3">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-[#8a6a4f]">
+            Caractère
+          </span>
+          {traits.map((t) => (
+            <PastilleTrait key={t} etat={etat} trait={t} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -445,39 +526,97 @@ function Scene({
     () => choixDisponibles(evenement, etat),
     [evenement, etat],
   );
+  const bordure = evenement.majeur
+    ? "border-[#b5651d]"
+    : evenement.echo
+      ? "border-[#7c3aed]/50"
+      : "border-[#e8d9c4]";
   return (
-    <Carte>
+    <Carte
+      bordure={bordure}
+      image={
+        <div className="relative">
+          <Illustration
+            scene={sceneDe(evenement, etat)}
+            etat={etat}
+            className="block h-44 w-full sm:h-56"
+          />
+          {evenement.majeur && (
+            <span className="absolute left-3 top-3 rounded-full bg-[#b5651d] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow">
+              ★ Décision majeure
+            </span>
+          )}
+          {evenement.echo && (
+            <span className="absolute left-3 top-3 rounded-full bg-[#6d28d9] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow">
+              ↺ Ton passé te rattrape
+            </span>
+          )}
+        </div>
+      }
+    >
       <p className="text-sm font-semibold uppercase tracking-wider text-[#b5651d]">
         {etat.age} ans
       </p>
-      <h2 className="mt-1 text-2xl font-bold">{evenement.titre}</h2>
+      <h2 className="mt-1 text-2xl font-bold">{txt(evenement.titre, etat)}</h2>
       <p className="mt-4 text-lg leading-relaxed">{txt(evenement.texte, etat)}</p>
+      {evenement.majeur && (
+        <p className="mt-3 rounded-lg bg-[#fdf1e4] px-3 py-2 text-sm text-[#7a4a1d]">
+          Ce choix façonnera la suite de ta vie. Prends le temps d&apos;y réfléchir.
+        </p>
+      )}
       <div className="mt-6 space-y-3">
-        {choix.map((c, i) => (
-          <button
-            key={i}
-            onClick={() => onChoix(i)}
-            className="flex w-full items-start gap-3 rounded-xl border-2 border-[#e8d9c4] p-4 text-left transition hover:border-[#b5651d] hover:bg-[#fdf1e4]"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#5a2e0e] text-sm font-bold text-white">
-              {String.fromCharCode(65 + i)}
-            </span>
-            <span className="pt-0.5">
-              {txt(c.texte, etat)}
-              {c.alea && (
-                <span className="ml-2 text-sm text-[#8a6a4f]" title="Issue incertaine">
-                  🎲
-                </span>
-              )}
-            </span>
-          </button>
-        ))}
+        {choix.map((c, i) => {
+          const p = probabilite(etat, evenement, c);
+          return (
+            <button
+              key={i}
+              onClick={() => onChoix(i)}
+              className="flex w-full items-start gap-3 rounded-xl border-2 border-[#e8d9c4] p-4 text-left transition hover:border-[#b5651d] hover:bg-[#fdf1e4]"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#5a2e0e] text-sm font-bold text-white">
+                {String.fromCharCode(65 + i)}
+              </span>
+              <span className="flex-1 pt-0.5">
+                {txt(c.texte, etat)}
+                {(p !== undefined || (c.traits && c.traits.length > 0)) && (
+                  <span className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+                    {p !== undefined && (
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-semibold ${
+                          p >= 0.6
+                            ? "bg-[#e7f6ec] text-[#16834b]"
+                            : p >= 0.35
+                              ? "bg-[#fdf3dc] text-[#9a6a00]"
+                              : "bg-[#fde8ea] text-[#ce1126]"
+                        }`}
+                      >
+                        🎲 {Math.round(p * 100)} % de chances
+                      </span>
+                    )}
+                    {c.traits
+                      ?.filter((t) => !(etat.traits ?? []).includes(t))
+                      .map((t) => (
+                        <span
+                          key={t}
+                          title={TRAITS[t].effet}
+                          className="rounded-full bg-[#f3e6d4] px-2 py-0.5 font-semibold text-[#5a3d26]"
+                        >
+                          forge : {TRAITS[t].icone} {nomTrait(etat, t)}
+                        </span>
+                      ))}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </Carte>
   );
 }
 
 function Resultat({ issue, onSuite }: { issue: Issue; onSuite: () => void }) {
+  const e = issue.etat;
   return (
     <Carte>
       {issue.reussite !== undefined && (
@@ -487,16 +626,78 @@ function Resultat({ issue, onSuite }: { issue: Issue; onSuite: () => void }) {
           }`}
         >
           {issue.reussite ? "Le destin te sourit" : "Le sort en a décidé autrement"}
+          {issue.chance !== undefined && (
+            <span className="ml-2 font-normal normal-case tracking-normal text-[#8a6a4f]">
+              ({Math.round(issue.chance * 100)} % de chances)
+            </span>
+          )}
         </p>
       )}
       <p className="text-lg leading-relaxed">{issue.resultat}</p>
+
+      {issue.nouveauxTraits.length > 0 && (
+        <div className="mt-5 space-y-2">
+          {issue.nouveauxTraits.map((t) => (
+            <div
+              key={t}
+              className="flex items-start gap-3 rounded-xl border border-[#d4a373] bg-[#fdf1e4] p-3"
+            >
+              <span className="text-2xl">{TRAITS[t].icone}</span>
+              <div>
+                <p className="font-bold">
+                  Nouveau trait de caractère : {nomTrait(e, t)}
+                </p>
+                <p className="text-sm text-[#7a5236]">{TRAITS[t].effet}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {issue.changements.length > 0 && (
+        <div className="mt-5 rounded-xl border border-[#14b53a]/30 bg-[#effaf2] p-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#16834b]">
+            Ta vie change
+          </p>
+          <ul className="mt-1 space-y-1">
+            {issue.changements.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {issue.annee.length > 0 && (
+        <div className="mt-5 rounded-xl bg-[#f7f2ea] p-3 text-sm text-[#5a3d26]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#8a6a4f]">
+            Les années passent…
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {issue.annee.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="mt-8">
         <BoutonPrincipal onClick={onSuite}>
-          {issue.etat.fini ? "Voir le bilan de ma vie" : "Les années passent…"}
+          {e.fini ? "Voir le bilan de ma vie" : `Continuer — ${e.age} ans`}
         </BoutonPrincipal>
       </div>
     </Carte>
   );
+}
+
+function sceneFinale(etat: Etat) {
+  const d = etat.drapeaux;
+  const m = String(d.metier ?? "");
+  if (d.migrant) return "desert" as const;
+  if (/agri|coopérative|karité/.test(m)) return "champ" as const;
+  if (/atelier|garage|salon|compte|commerç|transport|transfert/.test(m)) return "atelier" as const;
+  if (d.etudes && /master|universit|concours/.test(String(d.etudes))) return "diplome" as const;
+  if (d.marie) return "fete" as const;
+  return etat.milieu === "village" ? ("village" as const) : ("ville" as const);
 }
 
 function Fin({
@@ -507,29 +708,98 @@ function Fin({
   onRecommencer: () => void;
 }) {
   const bilan = bilanDeVie(etat, libelleMetier(etat));
+  const majeures = etat.journal.filter((j) => j.majeur);
+  const traits = etat.traits ?? [];
   return (
     <>
       <Bandeau />
       <Tableau etat={etat} />
-      <Carte>
+      <Carte
+        bordure="border-[#b5651d]"
+        image={
+          <Illustration
+            scene={sceneFinale(etat)}
+            etat={etat}
+            className="block h-48 w-full sm:h-60"
+          />
+        }
+      >
         <p className="text-sm font-semibold uppercase tracking-wider text-[#b5651d]">
           25 ans — bilan d&apos;une jeunesse
         </p>
-        <h2 className="mt-1 text-3xl font-bold">{bilan.titre}</h2>
-        <p className="mt-1 text-[#7a5236]">Score de vie : {bilan.score} / 100</p>
-        <div className="mt-4 space-y-3 text-lg leading-relaxed">
+        <div className="mt-1 flex items-center gap-4">
+          <Avatar etat={etat} taille={72} />
+          <div>
+            <h2 className="text-3xl font-bold">{bilan.titre}</h2>
+            <p className="text-[#7a5236]">Score de vie : {bilan.score} / 100</p>
+          </div>
+        </div>
+        <div className="mt-5 space-y-3 text-lg leading-relaxed">
           {bilan.paragraphes.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
         </div>
 
+        {traits.length > 0 && (
+          <>
+            <h3 className="mt-8 text-lg font-bold">Ton caractère</h3>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {traits.map((t) => (
+                <div key={t} className="flex items-start gap-2 rounded-xl bg-[#fdf1e4] p-3">
+                  <span className="text-xl">{TRAITS[t].icone}</span>
+                  <div>
+                    <p className="font-semibold">{nomTrait(etat, t)}</p>
+                    <p className="text-sm text-[#7a5236]">{TRAITS[t].effet}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {majeures.length > 0 && (
+          <>
+            <h3 className="mt-8 text-lg font-bold">
+              Les décisions qui ont façonné ta vie
+            </h3>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {majeures.map((j, i) => (
+                <div
+                  key={i}
+                  className="overflow-hidden rounded-xl border border-[#e8d9c4]"
+                >
+                  {j.scene && (
+                    <Illustration
+                      scene={j.scene}
+                      etat={etat}
+                      className="block h-20 w-full"
+                    />
+                  )}
+                  <div className="p-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#b5651d]">
+                      ★ {j.age} ans — {j.titre}
+                    </p>
+                    <p className="mt-1 text-sm text-[#5a3d26]">{j.texte}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <h3 className="mt-8 text-lg font-bold">Le fil de ta vie</h3>
         <ol className="mt-3 space-y-3 border-l-2 border-[#e8d9c4] pl-5">
           {etat.journal.map((j, i) => (
             <li key={i} className="relative">
-              <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full bg-[#b5651d]" />
-              <span className="font-semibold">{j.age} ans</span>
-              <span className="text-[#5a3d26]"> — {j.texte}</span>
+              <span
+                className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full ${
+                  j.majeur ? "bg-[#b5651d] ring-4 ring-[#fdf1e4]" : "bg-[#d4b48f]"
+                }`}
+              />
+              <span className="font-semibold">
+                {j.age} ans{j.titre ? ` — ${j.titre}` : ""}
+              </span>
+              <span className="block text-[#5a3d26]">{j.texte}</span>
             </li>
           ))}
         </ol>
